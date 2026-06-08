@@ -1,5 +1,9 @@
-import { readFileSync, readdirSync, unlinkSync, existsSync, statSync } from 'node:fs';
-import { basename, join, extname } from 'node:path';
+import {
+  readFileSync,
+  readdirSync,
+  statSync
+} from 'node:fs';
+import { basename, extname, join } from 'node:path';
 import { PDFParse } from 'pdf-parse';
 
 const parsePdf = async (dataBuffer) => {
@@ -32,11 +36,9 @@ export const buildUploadController = (ragService) => async (req, res) => {
     ) {
       textContent = readFileSync(path, 'utf-8');
     } else {
-      return res
-        .status(400)
-        .json({
-          error: 'Unsupported file type. Please upload .txt, .md, or .pdf',
-        });
+      return res.status(400).json({
+        error: 'Unsupported file type. Please upload .txt, .md, or .pdf',
+      });
     }
 
     if (!textContent || textContent.trim().length === 0) {

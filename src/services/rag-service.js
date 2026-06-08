@@ -1,5 +1,11 @@
 import FlexSearch from 'flexsearch';
-import { readFileSync, readdirSync, statSync, existsSync, unlinkSync } from 'node:fs';
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  unlinkSync,
+} from 'node:fs';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PDFParse } from 'pdf-parse';

@@ -310,9 +310,12 @@ const deleteUploadedFile = async (filename) => {
   if (!confirm(`Видалити файл "${filename}"?`)) return;
 
   try {
-    const response = await fetch(`/api/upload/${encodeURIComponent(filename)}`, {
-      method: 'DELETE',
-    });
+    const response = await fetch(
+      `/api/upload/${encodeURIComponent(filename)}`,
+      {
+        method: 'DELETE',
+      }
+    );
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Delete failed');
 

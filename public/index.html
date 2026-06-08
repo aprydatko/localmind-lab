@@ -1,192 +1,279 @@
 <!doctype html>
 <html lang="uk">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Local LLM Lab</title>
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
-  <header>
-    <div>
-      <p class="eyebrow">LLAMA.CPP / LEARNING CONSOLE</p>
-      <h1>Local LLM Lab</h1>
-    </div>
-    <div id="connection" class="status"><span></span> перевірка...</div>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local LLM Lab</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">LLAMA.CPP / LEARNING CONSOLE</p>
+        <h1>Local LLM Lab</h1>
+      </div>
+      <div id="connection" class="status"><span></span> перевірка...</div>
+    </header>
 
-  <main>
-    <aside class="panel controls">
-      <section>
-        <label for="model">Модель</label>
-        <input id="model" list="models" placeholder="local-model">
-        <datalist id="models"></datalist>
-      </section>
+    <main>
+      <aside class="panel controls">
+        <section>
+          <label for="model">Модель</label>
+          <input id="model" list="models" placeholder="local-model" />
+          <datalist id="models"></datalist>
+        </section>
 
-      <section>
-        <label for="mode">Режим лабораторії</label>
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <select id="mode" style="flex: 1;">
-            <option value="chat">chat</option>
-            <option value="stream">stream</option>
-            <option value="rag">RAG (Docs)</option>
-            <option value="structured">structured</option>
-            <option value="banking">banking agent</option>
-          </select>
-          <button id="uploadBtn" class="secondary-btn" style="display: none;">Upload File</button>
-          <input type="file" id="fileUpload" accept=".txt,.md,.pdf" style="display: none;">
+        <section>
+          <label for="mode">Режим лабораторії</label>
+          <div style="display: flex; gap: 10px; align-items: center">
+            <select id="mode" style="flex: 1">
+              <option value="chat">chat</option>
+              <option value="stream">stream</option>
+              <option value="rag">RAG (Docs)</option>
+              <option value="structured">structured</option>
+              <option value="banking">banking agent</option>
+            </select>
+            <button id="uploadBtn" class="secondary-btn" style="display: none">
+              Upload File
+            </button>
+            <input
+              type="file"
+              id="fileUpload"
+              accept=".txt,.md,.pdf"
+              style="display: none"
+            />
+          </div>
+          <p id="modeHelp" class="help"></p>
+          <p id="uploadStatus" class="help" style="color: #4caf50"></p>
+          <div id="uploadedFiles" class="uploaded-files"></div>
+        </section>
+
+        <section class="parameter">
+          <div>
+            <label for="temperature">Temperature</label
+            ><output id="temperatureValue">0.7</output>
+          </div>
+          <input
+            id="temperature"
+            type="range"
+            min="0"
+            max="2"
+            value="0.7"
+            step="0.1"
+          />
+          <small>0 = стабільніше, 1+ = різноманітніше</small>
+        </section>
+
+        <section class="parameter">
+          <div>
+            <label for="maxTokens">Max output tokens</label
+            ><output id="maxTokensValue">512</output>
+          </div>
+          <input
+            id="maxTokens"
+            type="range"
+            min="32"
+            max="4096"
+            value="512"
+            step="32"
+          />
+          <small>Ліміт нових токенів у відповіді</small>
+        </section>
+
+        <section>
+          <label>Навчальні шаблони</label>
+          <div class="presets">
+            <button data-preset="system">System Prompt</button>
+            <button data-preset="fewshot">Few-Shot</button>
+            <button data-preset="xml">XML Tags</button>
+            <button data-preset="reasoning">Reasoning</button>
+            <button data-preset="document">Structured</button>
+            <button data-preset="rag">RAG Search</button>
+            <button data-preset="banking">Banking Agent</button>
+          </div>
+        </section>
+
+        <section class="note">
+          <strong>Tokens і context window</strong>
+          <p>
+            <b>Input/prompt</b> — усе, що модель читає.
+            <b>Output/completion</b> — те, що вона генерує. Для agent loop usage
+            сумується за всі запити.
+          </p>
+        </section>
+
+        <details class="guide">
+          <summary>Шпаргалка українською</summary>
+          <dl>
+            <dt>system</dt>
+            <dd>Правила поведінки моделі.</dd>
+            <dt>few-shot</dt>
+            <dd>Кілька прикладів бажаного вводу й відповіді.</dd>
+            <dt>XML tags</dt>
+            <dd>Явно відділяють контекст, задачу й обмеження.</dd>
+            <dt>reasoning</dt>
+            <dd>Просіть стислий перевірюваний доказ, а не приховані думки.</dd>
+            <dt>tools</dt>
+            <dd>Модель обирає функцію, але код виконує її сам.</dd>
+            <dt>agent loop</dt>
+            <dd>
+              Модель може кілька разів вибирати tools, доки не поверне фінальну
+              відповідь.
+            </dd>
+          </dl>
+        </details>
+      </aside>
+
+      <section class="workspace">
+        <div class="workspace-head">
+          <div>
+            <p class="eyebrow">MESSAGE STACK</p>
+            <h2>Розмова</h2>
+          </div>
+          <div class="workspace-buttons">
+            <button id="openCapabilities" class="secondary">
+              Tools & skills
+            </button>
+            <button id="openPromptBuilder" class="secondary">
+              Prompt builder
+            </button>
+            <button id="addMessage" class="secondary">+ повідомлення</button>
+          </div>
         </div>
-        <p id="modeHelp" class="help"></p>
-        <p id="uploadStatus" class="help" style="color: #4CAF50;"></p>
-        <div id="uploadedFiles" class="uploaded-files"></div>
-      </section>
 
-      <section class="parameter">
-        <div><label for="temperature">Temperature</label><output id="temperatureValue">0.7</output></div>
-        <input id="temperature" type="range" min="0" max="2" value="0.7" step="0.1">
-        <small>0 = стабільніше, 1+ = різноманітніше</small>
-      </section>
+        <div id="messages"></div>
 
-      <section class="parameter">
-        <div><label for="maxTokens">Max output tokens</label><output id="maxTokensValue">512</output></div>
-        <input id="maxTokens" type="range" min="32" max="4096" value="512" step="32">
-        <small>Ліміт нових токенів у відповіді</small>
-      </section>
-
-      <section>
-        <label>Навчальні шаблони</label>
-        <div class="presets">
-          <button data-preset="system">System Prompt</button>
-          <button data-preset="fewshot">Few-Shot</button>
-          <button data-preset="xml">XML Tags</button>
-          <button data-preset="reasoning">Reasoning</button>
-          <button data-preset="document">Structured</button>
-          <button data-preset="rag">RAG Search</button>
-          <button data-preset="banking">Banking Agent</button>
+        <div class="actions">
+          <button id="compare" class="secondary">
+            Порівняти 0 / 0.7 / 1.0
+          </button>
+          <button id="send" class="primary">
+            Запустити модель <span>↗</span>
+          </button>
         </div>
+
+        <div id="error" class="error" hidden></div>
+        <section id="results" class="results"></section>
       </section>
+    </main>
 
-      <section class="note">
-        <strong>Tokens і context window</strong>
-        <p><b>Input/prompt</b> — усе, що модель читає. <b>Output/completion</b> — те, що вона генерує. Для agent loop usage сумується за всі запити.</p>
-      </section>
-
-      <details class="guide">
-        <summary>Шпаргалка українською</summary>
-        <dl>
-          <dt>system</dt><dd>Правила поведінки моделі.</dd>
-          <dt>few-shot</dt><dd>Кілька прикладів бажаного вводу й відповіді.</dd>
-          <dt>XML tags</dt><dd>Явно відділяють контекст, задачу й обмеження.</dd>
-          <dt>reasoning</dt><dd>Просіть стислий перевірюваний доказ, а не приховані думки.</dd>
-          <dt>tools</dt><dd>Модель обирає функцію, але код виконує її сам.</dd>
-          <dt>agent loop</dt><dd>Модель може кілька разів вибирати tools, доки не поверне фінальну відповідь.</dd>
-        </dl>
-      </details>
-    </aside>
-
-    <section class="workspace">
-      <div class="workspace-head">
-        <div>
-          <p class="eyebrow">MESSAGE STACK</p>
-          <h2>Розмова</h2>
+    <template id="messageTemplate">
+      <article class="message">
+        <div class="message-bar">
+          <select aria-label="Роль">
+            <option value="system">system</option>
+            <option value="user">user</option>
+            <option value="assistant">assistant</option>
+          </select>
+          <button class="remove" aria-label="Видалити">×</button>
         </div>
-        <div class="workspace-buttons">
-          <button id="openCapabilities" class="secondary">Tools & skills</button>
-          <button id="openPromptBuilder" class="secondary">Prompt builder</button>
-          <button id="addMessage" class="secondary">+ повідомлення</button>
+        <textarea
+          rows="4"
+          placeholder="Введіть зміст повідомлення..."
+        ></textarea>
+      </article>
+    </template>
+
+    <dialog id="promptBuilder">
+      <form method="dialog" class="dialog-card">
+        <header class="dialog-head">
+          <div>
+            <p class="eyebrow">PROMPT COMPOSER</p>
+            <h2>Згенерувати prompt</h2>
+          </div>
+          <button value="cancel" class="remove" aria-label="Закрити">×</button>
+        </header>
+        <div class="builder-grid">
+          <label
+            >Role / persona
+            <input id="builderRole" value="You are a helpful technical tutor" />
+          </label>
+          <label
+            >Response language
+            <select id="builderLanguage">
+              <option value="Ukrainian">Ukrainian</option>
+              <option value="English">English</option>
+            </select>
+          </label>
+          <label class="wide"
+            >Task
+            <textarea
+              id="builderTask"
+              rows="3"
+              placeholder="Explain how tool calling works"
+            ></textarea>
+          </label>
+          <label class="wide"
+            >Context
+            <textarea
+              id="builderContext"
+              rows="3"
+              placeholder="Optional facts or source material"
+            ></textarea>
+          </label>
+          <label class="wide"
+            >Constraints
+            <textarea
+              id="builderConstraints"
+              rows="3"
+              placeholder="Be concise; include one example"
+            ></textarea>
+          </label>
+          <label
+            >Output format
+            <select id="builderFormat">
+              <option value="Markdown with clear headings">Markdown</option>
+              <option value="valid JSON only">JSON</option>
+              <option value="a concise numbered list">Numbered list</option>
+              <option
+                value="a practical code example followed by an explanation"
+              >
+                Code + explanation
+              </option>
+            </select>
+          </label>
+          <label
+            >Technique
+            <select id="builderTechnique">
+              <option value="plain">Plain instructions</option>
+              <option value="xml">XML structure</option>
+              <option value="reasoning">Verifiable steps</option>
+            </select>
+          </label>
         </div>
+        <pre id="promptPreview" class="prompt-preview"></pre>
+        <div class="dialog-actions">
+          <button value="cancel">Скасувати</button>
+          <button id="insertPrompt" value="cancel" class="primary">
+            Додати в messages
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="capabilitiesDialog">
+      <div class="dialog-card capabilities-card">
+        <header class="dialog-head">
+          <div>
+            <p class="eyebrow">CAPABILITY CATALOG</p>
+            <h2>Tools & skills</h2>
+          </div>
+          <button id="closeCapabilities" class="remove" aria-label="Закрити">
+            ×
+          </button>
+        </header>
+        <nav class="catalog-tabs">
+          <button data-catalog-tab="tools" class="active">Tools</button>
+          <button data-catalog-tab="skills">Skills</button>
+        </nav>
+        <p class="help">
+          Tool — атомарна функція, яку викликає модель. Skill — майбутній
+          багатоетапний workflow із prompts, tools і validation.
+        </p>
+        <section id="capabilityList" class="capability-list"></section>
       </div>
+    </dialog>
 
-      <div id="messages"></div>
-
-      <div class="actions">
-        <button id="compare" class="secondary">Порівняти 0 / 0.7 / 1.0</button>
-        <button id="send" class="primary">Запустити модель <span>↗</span></button>
-      </div>
-
-      <div id="error" class="error" hidden></div>
-      <section id="results" class="results"></section>
-    </section>
-  </main>
-
-  <template id="messageTemplate">
-    <article class="message">
-      <div class="message-bar">
-        <select aria-label="Роль">
-          <option value="system">system</option>
-          <option value="user">user</option>
-          <option value="assistant">assistant</option>
-        </select>
-        <button class="remove" aria-label="Видалити">×</button>
-      </div>
-      <textarea rows="4" placeholder="Введіть зміст повідомлення..."></textarea>
-    </article>
-  </template>
-
-  <dialog id="promptBuilder">
-    <form method="dialog" class="dialog-card">
-      <header class="dialog-head">
-        <div><p class="eyebrow">PROMPT COMPOSER</p><h2>Згенерувати prompt</h2></div>
-        <button value="cancel" class="remove" aria-label="Закрити">×</button>
-      </header>
-      <div class="builder-grid">
-        <label>Role / persona
-          <input id="builderRole" value="You are a helpful technical tutor">
-        </label>
-        <label>Response language
-          <select id="builderLanguage">
-            <option value="Ukrainian">Ukrainian</option>
-            <option value="English">English</option>
-          </select>
-        </label>
-        <label class="wide">Task
-          <textarea id="builderTask" rows="3" placeholder="Explain how tool calling works"></textarea>
-        </label>
-        <label class="wide">Context
-          <textarea id="builderContext" rows="3" placeholder="Optional facts or source material"></textarea>
-        </label>
-        <label class="wide">Constraints
-          <textarea id="builderConstraints" rows="3" placeholder="Be concise; include one example"></textarea>
-        </label>
-        <label>Output format
-          <select id="builderFormat">
-            <option value="Markdown with clear headings">Markdown</option>
-            <option value="valid JSON only">JSON</option>
-            <option value="a concise numbered list">Numbered list</option>
-            <option value="a practical code example followed by an explanation">Code + explanation</option>
-          </select>
-        </label>
-        <label>Technique
-          <select id="builderTechnique">
-            <option value="plain">Plain instructions</option>
-            <option value="xml">XML structure</option>
-            <option value="reasoning">Verifiable steps</option>
-          </select>
-        </label>
-      </div>
-      <pre id="promptPreview" class="prompt-preview"></pre>
-      <div class="dialog-actions">
-        <button value="cancel">Скасувати</button>
-        <button id="insertPrompt" value="cancel" class="primary">Додати в messages</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="capabilitiesDialog">
-    <div class="dialog-card capabilities-card">
-      <header class="dialog-head">
-        <div><p class="eyebrow">CAPABILITY CATALOG</p><h2>Tools & skills</h2></div>
-        <button id="closeCapabilities" class="remove" aria-label="Закрити">×</button>
-      </header>
-      <nav class="catalog-tabs">
-        <button data-catalog-tab="tools" class="active">Tools</button>
-        <button data-catalog-tab="skills">Skills</button>
-      </nav>
-      <p class="help">Tool — атомарна функція, яку викликає модель. Skill — майбутній багатоетапний workflow із prompts, tools і validation.</p>
-      <section id="capabilityList" class="capability-list"></section>
-    </div>
-  </dialog>
-
-  <script type="module" src="/app.js"></script>
-</body>
+    <script type="module" src="/app.js"></script>
+  </body>
 </html>

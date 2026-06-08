@@ -229,6 +229,23 @@ button:disabled {
 .workspace-buttons {
   gap: 8px;
 }
+.active-capabilities {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #ffd8ca 0%, #ffe0d0 100%);
+  border-left: 3px solid var(--acid);
+  color: #333;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: 3px;
+  display: inline-block;
+}
+.active-capabilities::before {
+  content: '◆ ';
+  color: var(--acid);
+  margin-right: 4px;
+}
 #messages {
   display: grid;
   gap: 14px;
@@ -629,6 +646,26 @@ button:disabled {
 }
 .capability-head b.planned {
   background: #ffd8ca;
+}
+.capability-actions {
+  padding: 0 14px 14px;
+}
+.capability-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border: 1px solid var(--ink);
+  background: #fffcf2;
+  color: inherit;
+  font:
+    0.8rem 'IBM Plex Mono',
+    monospace;
+  cursor: pointer;
+}
+.capability-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .capability-card summary {
   cursor: pointer;

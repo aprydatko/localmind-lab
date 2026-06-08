@@ -1,66 +1,27 @@
-
-export const bankingTools = [
-  {
-    type: "function",
-    function: {
-      name: "get_balance",
-      description: "Get the current mock account balance and its currency.",
-      parameters: { type: "object", properties: {}, additionalProperties: false }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_transactions",
-      description: "Get the most recent mock account transactions.",
-      parameters: {
-        type: "object",
-        properties: {
-          limit: {
-            type: "integer",
-            minimum: 1,
-            maximum: 10,
-            description: "Number of recent transactions to return."
-          }
-        },
-        additionalProperties: false
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_exchange_rate",
-      description: "Get a mock exchange rate between two supported currencies.",
-      parameters: {
-        type: "object",
-        properties: {
-          from: { type: "string", enum: ["UAH", "USD", "EUR"] },
-          to: { type: "string", enum: ["UAH", "USD", "EUR"] }
-        },
-        required: ["from", "to"],
-        additionalProperties: false
-      }
-    }
-  }
-];
-
+import { bankingTools } from "./tools/banking-tools.js";
 
 const addUsage = (total, usage = {}) => ({
   prompt_tokens: total.prompt_tokens + (usage.prompt_tokens || 0),
   completion_tokens: total.completion_tokens + (usage.completion_tokens || 0),
-  total_tokens: total.total_tokens + (usage.total_tokens || 0)
+  total_tokens: total.total_tokens + (usage.total_tokens || 0),
 });
 
 const parseArguments = (call) => {
   try {
     return JSON.parse(call.function.arguments || "{}");
   } catch {
-    throw new Error(`Tool ${call.function.name} returned invalid JSON arguments`);
+    throw new Error(
+      `Tool ${call.function.name} returned invalid JSON arguments`,
+    );
   }
 };
 
-export const runBankingAgent = async ({ client, request, bankingService, maxIterations = 5 }) => {
+export const runBankingAgent = async ({
+  client,
+  request,
+  bankingService,
+  maxIterations = 5,
+}) => {
   const messages = [...request.messages];
   const trace = [];
   const toolCalls = [];
@@ -74,9 +35,12 @@ export const runBankingAgent = async ({ client, request, bankingService, maxIter
       ...request,
       messages,
       tools: bankingTools,
-      tool_choice: "auto"
+      tool_choice: "auto",
     });
-    const assistant = completion.choices?.[0]?.message || { role: "assistant", content: "" };
+    const assistant = completion.choices?.[0]?.message || {
+      role: "assistant",
+      content: "",
+    };
     const calls = assistant.tool_calls || [];
     usage = addUsage(usage, completion.usage);
 
@@ -85,12 +49,12 @@ export const runBankingAgent = async ({ client, request, bankingService, maxIter
       iteration,
       decision: calls.length > 0 ? "tool_calls" : "final_answer",
       toolNames: calls.map((call) => call.function.name),
-      usage: completion.usage || {}
+      usage: completion.usage || {},
     });
     console.log(`[agent] iteration ${iteration}: model decision`, {
       decision: calls.length > 0 ? "tool_calls" : "final_answer",
       tools: calls.map((call) => call.function.name),
-      usage: completion.usage
+      usage: completion.usage,
     });
 
     if (calls.length === 0) {
@@ -100,7 +64,7 @@ export const runBankingAgent = async ({ client, request, bankingService, maxIter
         toolCalls,
         trace,
         iterations: iteration,
-        usage
+        usage,
       };
     }
 
@@ -114,7 +78,7 @@ export const runBankingAgent = async ({ client, request, bankingService, maxIter
         iteration,
         name: call.function.name,
         arguments: args,
-        result
+        result,
       };
       toolCalls.push(toolCall);
       trace.push({ type: "tool", ...toolCall });
@@ -122,18 +86,21 @@ export const runBankingAgent = async ({ client, request, bankingService, maxIter
       messages.push({
         role: "tool",
         tool_call_id: call.id,
-        content: JSON.stringify(result)
+        content: JSON.stringify(result),
       });
     }
   }
 
-  console.warn("[agent] stopped: maximum iterations reached", { maxIterations });
+  console.warn("[agent] stopped: maximum iterations reached", {
+    maxIterations,
+  });
   return {
-    answer: "The agent stopped after reaching the maximum number of iterations.",
+    answer:
+      "The agent stopped after reaching the maximum number of iterations.",
     toolCalls,
     trace,
     iterations: maxIterations,
     stopped: true,
-    usage
+    usage,
   };
 };

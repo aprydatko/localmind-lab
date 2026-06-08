@@ -7,7 +7,7 @@
 Explore chat completions, token streaming, structured output, prompt engineering,
 and tool-calling agents through an OpenAI-compatible `llama.cpp` API.
 
-[Getting Started](#getting-started) · [Features](#features) · [API](#api-reference) · [How It Works](#how-it-works)
+[Getting Started](#getting-started) · [Features](#features) · [API](#api-reference) · [How It Works](#how-it-works) · [Architecture](#architecture)
 
 </div>
 
@@ -31,18 +31,18 @@ provider or frontend framework is required.
 
 ## Features
 
-| Feature | What it demonstrates |
-| --- | --- |
-| Chat completions | Roles, message history, temperature, and output limits |
-| SSE streaming | Incremental token delivery from model to browser |
-| Prompt builder | Structured prompts with context, constraints, and output rules |
-| Temperature comparison | The same prompt evaluated with multiple sampling settings |
-| Structured output | JSON extraction, Zod validation, retries, and a safe fallback |
-| Tool calling | Multi-step agent loop with model-selected JavaScript functions |
-| Agent trace | Model decisions, tool arguments, results, iterations, and usage |
-| Capability catalog | Discoverable tool definitions and planned reusable skills |
-| Markdown rendering | GitHub-flavored Markdown sanitized with DOMPurify |
-| Error handling | Request validation, timeouts, offline model discovery, and stream errors |
+| Feature                | What it demonstrates                                                     |
+| ---------------------- | ------------------------------------------------------------------------ |
+| Chat completions       | Roles, message history, temperature, and output limits                   |
+| SSE streaming          | Incremental token delivery from model to browser                         |
+| Prompt builder         | Structured prompts with context, constraints, and output rules           |
+| Temperature comparison | The same prompt evaluated with multiple sampling settings                |
+| Structured output      | JSON extraction, Zod validation, retries, and a safe fallback            |
+| Tool calling           | Multi-step agent loop with model-selected JavaScript functions           |
+| Agent trace            | Model decisions, tool arguments, results, iterations, and usage          |
+| Capability catalog     | Discoverable tool definitions and planned reusable skills                |
+| Markdown rendering     | GitHub-flavored Markdown sanitized with DOMPurify                        |
+| Error handling         | Request validation, timeouts, offline model discovery, and stream errors |
 
 ## How It Works
 
@@ -73,6 +73,18 @@ User request
 
 The loop is limited to five model iterations to prevent unbounded execution.
 
+## Architecture
+
+For detailed information about the application architecture, module structure, and design patterns, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+The application follows a modular architecture with clear separation of concerns:
+
+- **Frontend**: Vanilla JavaScript with modular structure (init, orchestrator, handlers, modules)
+- **Backend**: Express.js with controllers, services, and middleware layers
+- **State Management**: Centralized state management in dedicated modules
+- **Error Handling**: Structured error handling middleware with logging
+- **API Layer**: OpenAI-compatible client for llama.cpp communication
+
 ## Getting Started
 
 ### Prerequisites
@@ -102,13 +114,13 @@ Copy-Item .env.example .env
 
 Available environment variables:
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `PORT` | `3000` | Local application port |
-| `LLAMA_BASE_URL` | `http://127.0.0.1:8080` | llama.cpp URL without `/v1` |
-| `LLAMA_MODEL` | empty | Fallback model identifier |
-| `LLAMA_API_KEY` | empty | Optional bearer token |
-| `LLAMA_TIMEOUT_MS` | `120000` | Upstream request timeout in milliseconds |
+| Variable           | Default                 | Description                              |
+| ------------------ | ----------------------- | ---------------------------------------- |
+| `PORT`             | `3000`                  | Local application port                   |
+| `LLAMA_BASE_URL`   | `http://127.0.0.1:8080` | llama.cpp URL without `/v1`              |
+| `LLAMA_MODEL`      | empty                   | Fallback model identifier                |
+| `LLAMA_API_KEY`    | empty                   | Optional bearer token                    |
+| `LLAMA_TIMEOUT_MS` | `120000`                | Upstream request timeout in milliseconds |
 
 ### 3. Install and run
 
@@ -169,14 +181,18 @@ to the server console with `[agent]` and `[tool]` prefixes.
 
 ## API Reference
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/api/models` | Lists models exposed by llama.cpp |
-| `GET` | `/api/capabilities` | Returns available tools and planned skills |
-| `POST` | `/api/chat` | Runs a standard chat completion |
-| `POST` | `/api/chat/stream` | Streams a completion over SSE |
-| `POST` | `/api/structured` | Produces schema-validated document analysis |
-| `POST` | `/api/banking-agent` | Runs the mock tool-calling agent |
+| Method   | Endpoint                | Description                                 |
+| -------- | ----------------------- | ------------------------------------------- |
+| `GET`    | `/api/models`           | Lists models exposed by llama.cpp           |
+| `GET`    | `/api/capabilities`     | Returns available tools and planned skills  |
+| `POST`   | `/api/chat`             | Runs a standard chat completion             |
+| `POST`   | `/api/chat/stream`      | Streams a completion over SSE               |
+| `POST`   | `/api/structured`       | Produces schema-validated document analysis |
+| `POST`   | `/api/banking-agent`    | Runs the mock tool-calling agent            |
+| `POST`   | `/api/rag`              | Runs RAG search with indexed documents      |
+| `POST`   | `/api/upload`           | Uploads and indexes a file for RAG          |
+| `GET`    | `/api/uploads`          | Lists uploaded files                        |
+| `DELETE` | `/api/upload/:filename` | Deletes an uploaded file                    |
 
 Example request:
 
@@ -199,17 +215,49 @@ Example request:
 ```text
 localmind-lab/
 ├── public/
-│   ├── app.js                 # Browser interactions and API calls
-│   ├── index.html             # Playground interface
+│   ├── app.js                 # Main application entry point
+│   ├── init.js                # Application initialization
+│   ├── orchestrator.js        # Module coordination
+│   ├── handlers.js            # Event handlers setup
+│   ├── modules/               # Business logic modules
+│   │   ├── app-state.js       # Application state management
+│   │   ├── mode-manager.js    # Mode switching logic
+│   │   ├── skill-manager.js   # Skill and capabilities management
+│   │   ├── request-runner.js  # API request execution
+│   │   └── loading-manager.js # Loading state management
+│   ├── api.js                 # API client functions
+│   ├── state.js               # State management
+│   ├── ui.js                  # UI rendering functions
+│   ├── utils.js               # Utility functions
 │   ├── markdown.js            # Safe Markdown rendering
+│   ├── presets.js             # Preset configurations
+│   ├── index.html             # Playground interface
 │   └── styles.css             # Application styles
 ├── src/
-│   ├── banking-agent.js       # Tool definitions and agent loop
+│   ├── server.js              # HTTP routes, SSE proxy, and static files
+│   ├── llama-client.js        # OpenAI-compatible llama.cpp client
+│   ├── banking-agent.js       # Agent loop logic
+│   ├── structured-output.js   # Zod schema and retry workflow
 │   ├── capabilities.js        # Tools and skills catalog
 │   ├── chat-request.js        # Input validation and request building
-│   ├── llama-client.js        # OpenAI-compatible llama.cpp client
-│   ├── server.js              # HTTP routes, SSE proxy, and static files
-│   └── structured-output.js   # Zod schema and retry workflow
+│   ├── tools/                 # Tool definitions
+│   │   └── banking-tools.js   # Banking tool definitions
+│   ├── middleware/            # Express middleware
+│   │   └── errorHandler.js    # Error handling middleware
+│   ├── controllers/           # Route handlers
+│   │   ├── agent.js           # Banking agent controller
+│   │   ├── chat.js            # Chat completion controller
+│   │   ├── rag.js             # RAG controller
+│   │   ├── system.js          # System endpoints controller
+│   │   └── upload.js          # File upload controller
+│   ├── services/              # Business logic services
+│   │   ├── banking.js          # Banking service
+│   │   └── rag-service.js     # RAG service
+│   └── utils/                 # Utility functions
+│       ├── llm-retry.js       # LLM retry logic
+│       └── logger.js          # Structured logging
+├── docs/                      # Documentation
+├── ARCHITECTURE.md            # Detailed architecture documentation
 └── test/                      # Node.js unit tests
 ```
 

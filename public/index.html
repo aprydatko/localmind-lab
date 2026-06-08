@@ -25,13 +25,20 @@
 
       <section>
         <label for="mode">Режим лабораторії</label>
-        <select id="mode">
-          <option value="chat">Chat completion</option>
-          <option value="stream">SSE streaming</option>
-          <option value="structured">Validated JSON</option>
-          <option value="banking">Banking tools</option>
-        </select>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <select id="mode" style="flex: 1;">
+            <option value="chat">chat</option>
+            <option value="stream">stream</option>
+            <option value="rag">RAG (Docs)</option>
+            <option value="structured">structured</option>
+            <option value="banking">banking agent</option>
+          </select>
+          <button id="uploadBtn" class="secondary-btn" style="display: none;">Upload File</button>
+          <input type="file" id="fileUpload" accept=".txt,.md,.pdf" style="display: none;">
+        </div>
         <p id="modeHelp" class="help"></p>
+        <p id="uploadStatus" class="help" style="color: #4CAF50;"></p>
+        <div id="uploadedFiles" class="uploaded-files"></div>
       </section>
 
       <section class="parameter">
@@ -49,12 +56,13 @@
       <section>
         <label>Навчальні шаблони</label>
         <div class="presets">
-          <button data-preset="system">System prompt</button>
-          <button data-preset="fewshot">Few-shot</button>
-          <button data-preset="xml">XML tags</button>
+          <button data-preset="system">System Prompt</button>
+          <button data-preset="fewshot">Few-Shot</button>
+          <button data-preset="xml">XML Tags</button>
           <button data-preset="reasoning">Reasoning</button>
-          <button data-preset="document">Document JSON</button>
-          <button data-preset="banking">Banking agent</button>
+          <button data-preset="document">Structured</button>
+          <button data-preset="rag">RAG Search</button>
+          <button data-preset="banking">Banking Agent</button>
         </div>
       </section>
 

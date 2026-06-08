@@ -1,0 +1,31 @@
+agent: codex
+
+commands:
+  test: "npm test"
+
+ignore_patterns:
+  - "node_modules/**"
+  - "coverage/**"
+  - ".no-mistakes/evidence/**"
+  - "*.log"
+  - ".env"
+  - ".env.*"
+  - "!.env.example"
+
+auto_fix:
+  rebase: 3
+  review: 1
+  test: 2
+  document: 1
+  ci: 2
+
+intent:
+  enabled: true
+  threshold: 0.2
+  slack_days: 3
+  disabled_readers: []
+
+test:
+  evidence:
+    store_in_repo: false
+    dir: ".no-mistakes/evidence"

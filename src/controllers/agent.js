@@ -1,6 +1,7 @@
 import { runBankingAgent } from '../banking-agent.js'
 import { buildChatRequest } from '../chat-request.js'
 import { client, fallbackModel } from '../client.js'
+import { BankingService } from '../services/banking.js'
 
 export const bankingChat = async (req, res) => {
   try {
@@ -15,7 +16,8 @@ export const bankingChat = async (req, res) => {
       ...chatRequest.messages.filter((message) => message.role !== 'system')
     ]
     
-    const result = await runBankingAgent({ client, request: chatRequest })
+    const bankingService = new BankingService()
+    const result = await runBankingAgent({ client, request: chatRequest, bankingService })
     res.json(result)
   } catch (error) {
     res.status(502).json({ error: error.message })

@@ -195,8 +195,16 @@ const normalizedResult = (data) => {
     };
   }
 
+  const message = data.choices?.[0]?.message || {};
+  let contentText = message.content || "";
+  
+  if (message.reasoning_content) {
+    const reasoning = `> **Thinking:**\n> ${message.reasoning_content.replace(/\n/g, '\n> ')}\n\n`;
+    contentText = reasoning + contentText;
+  }
+
   return {
-    content: data.choices?.[0]?.message?.content || "Модель не повернула текст.",
+    content: contentText || "Модель не повернула текст.",
     finishReason: data.choices?.[0]?.finish_reason || "unknown",
     usage: data.usage
   };
@@ -295,6 +303,8 @@ const streamCompletion = async (temperature) => {
 
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
   let buffer = "";
+  let reasoning = "";
+  let content = "";
 
   while (true) {
     const { value, done } = await reader.read();
@@ -309,8 +319,17 @@ const streamCompletion = async (temperature) => {
       const payload = line.slice(5).trim();
       if (payload === "[DONE]") continue;
       const data = JSON.parse(payload);
-      markdown += data.choices?.[0]?.delta?.content || "";
-      renderMarkdown(output, markdown);
+      
+      const delta = data.choices?.[0]?.delta || {};
+      if (delta.reasoning_content) {
+        reasoning += delta.reasoning_content;
+      }
+      if (delta.content) {
+        content += delta.content;
+      }
+      
+      const reasoningText = reasoning ? `> **Thinking:**\n> ${reasoning.replace(/\n/g, '\n> ')}\n\n` : "";
+      renderMarkdown(output, reasoningText + content);
     }
   }
 };

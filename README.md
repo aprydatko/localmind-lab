@@ -11,6 +11,8 @@ and tool-calling agents through an OpenAI-compatible `llama.cpp` API.
 
 </div>
 
+![LocalMind Lab interface](docs/local-llm-lab.png)
+
 ---
 
 ## Overview

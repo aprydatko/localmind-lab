@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { bankingTools, runBankingAgent } from "../src/banking-agent.js";
+import { BankingService } from "../src/services/banking.js";
 
 test("defines balance, transaction, and exchange-rate tools", () => {
   assert.deepEqual(
@@ -36,6 +37,7 @@ test("executes a selected tool and sends its result back to the model", async ()
 
   const result = await runBankingAgent({
     client,
+    bankingService: new BankingService(),
     request: { messages: [{ role: "user", content: "Balance?" }] }
   });
 
@@ -88,6 +90,7 @@ test("supports multiple iterations and aggregates token usage", async () => {
 
   const result = await runBankingAgent({
     client,
+    bankingService: new BankingService(),
     request: {
       model: "test-model",
       messages: [{ role: "user", content: "Balance in USD?" }]

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { runWithRetry } from "./utils/llm-retry.js";
 
 export const analysisSchema = z.object({
   documentType: z.string().min(1),
@@ -30,47 +31,26 @@ The response must match this schema:
 Do not use markdown or add fields.`;
 
 export const runStructuredAnalysis = async ({ client, request, attempts = 3 }) => {
-  let messages = [
-    { role: "system", content: structuredSystemPrompt },
-    ...request.messages.filter((message) => message.role !== "system")
-  ];
-  let lastError;
-  let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  const result = await runWithRetry({
+    client,
+    request,
+    parser: parseAnalysis,
+    systemPrompt: structuredSystemPrompt,
+    attempts,
+    getCorrectionPrompt: (error) => `Your response failed JSON validation: ${error.message}. Return corrected JSON only.`
+  });
 
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const result = await client.chat({ ...request, messages, stream: false });
-    const content = result.choices?.[0]?.message?.content || "";
-    usage = {
-      prompt_tokens: usage.prompt_tokens + (result.usage?.prompt_tokens || 0),
-      completion_tokens: usage.completion_tokens + (result.usage?.completion_tokens || 0),
-      total_tokens: usage.total_tokens + (result.usage?.total_tokens || 0)
+  if (result.fallback) {
+    return {
+      ...result,
+      data: {
+        documentType: "unknown",
+        summary: "The model did not return valid structured data.",
+        riskLevel: "high",
+        keyFacts: []
+      }
     };
-
-    try {
-      return { data: parseAnalysis(content), attempts: attempt, usage };
-    } catch (error) {
-      lastError = error;
-      messages = [
-        ...messages,
-        { role: "assistant", content },
-        {
-          role: "user",
-          content: `Your response failed JSON validation: ${error.message}. Return corrected JSON only.`
-        }
-      ];
-    }
   }
 
-  return {
-    data: {
-      documentType: "unknown",
-      summary: "The model did not return valid structured data.",
-      riskLevel: "high",
-      keyFacts: []
-    },
-    attempts,
-    fallback: true,
-    validationError: lastError?.message,
-    usage
-  };
+  return result;
 };

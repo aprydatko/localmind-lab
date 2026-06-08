@@ -1,12 +1,3 @@
-const account = {
-  currency: "UAH",
-  available: 12_450.75,
-  transactions: [
-    { date: "2026-06-07", description: "Grocery store", amount: -842.30 },
-    { date: "2026-06-06", description: "Salary", amount: 32_000 },
-    { date: "2026-06-05", description: "Internet", amount: -399 }
-  ]
-};
 
 export const bankingTools = [
   {
@@ -54,28 +45,6 @@ export const bankingTools = [
   }
 ];
 
-const ratesToUah = { UAH: 1, USD: 41.25, EUR: 47.10 };
-
-const executeTool = (name, args) => {
-  if (name === "get_balance") {
-    return { currency: account.currency, available: account.available };
-  }
-
-  if (name === "get_transactions") {
-    return account.transactions.slice(0, args.limit || 5);
-  }
-
-  if (name === "get_exchange_rate") {
-    return {
-      from: args.from,
-      to: args.to,
-      rate: ratesToUah[args.from] / ratesToUah[args.to],
-      mock: true
-    };
-  }
-
-  throw new Error(`Unknown tool: ${name}`);
-};
 
 const addUsage = (total, usage = {}) => ({
   prompt_tokens: total.prompt_tokens + (usage.prompt_tokens || 0),
@@ -91,7 +60,7 @@ const parseArguments = (call) => {
   }
 };
 
-export const runBankingAgent = async ({ client, request, maxIterations = 5 }) => {
+export const runBankingAgent = async ({ client, request, bankingService, maxIterations = 5 }) => {
   const messages = [...request.messages];
   const trace = [];
   const toolCalls = [];
@@ -139,7 +108,7 @@ export const runBankingAgent = async ({ client, request, maxIterations = 5 }) =>
 
     for (const call of calls) {
       const args = parseArguments(call);
-      const result = executeTool(call.function.name, args);
+      const result = bankingService.executeTool(call.function.name, args);
       const toolCall = {
         id: call.id,
         iteration,

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="uk">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,19 +12,19 @@
         <p class="eyebrow">LLAMA.CPP / LEARNING CONSOLE</p>
         <h1>Local LLM Lab</h1>
       </div>
-      <div id="connection" class="status"><span></span> перевірка...</div>
+      <div id="connection" class="status"><span></span> checking...</div>
     </header>
 
     <main>
       <aside class="panel controls">
         <section>
-          <label for="model">Модель</label>
+          <label for="model">Model</label>
           <input id="model" list="models" placeholder="local-model" />
           <datalist id="models"></datalist>
         </section>
 
         <section>
-          <label for="mode">Режим лабораторії</label>
+          <label for="mode">Lab mode</label>
           <div style="display: flex; gap: 10px; align-items: center">
             <select id="mode" style="flex: 1">
               <option value="chat">chat</option>
@@ -48,6 +48,14 @@
           <div id="uploadedFiles" class="uploaded-files"></div>
         </section>
 
+        <section>
+          <label for="uiLanguage">Response language</label>
+          <select id="uiLanguage">
+            <option value="English" selected>English</option>
+            <option value="Ukrainian">Ukrainian</option>
+          </select>
+        </section>
+
         <section class="parameter">
           <div>
             <label for="temperature">Temperature</label
@@ -61,7 +69,7 @@
             value="0.7"
             step="0.1"
           />
-          <small>0 = стабільніше, 1+ = різноманітніше</small>
+          <small>0 = more deterministic, 1+ = more varied</small>
         </section>
 
         <section class="parameter">
@@ -77,11 +85,11 @@
             value="512"
             step="32"
           />
-          <small>Ліміт нових токенів у відповіді</small>
+          <small>Limit of new tokens in the response</small>
         </section>
 
         <section>
-          <label>Навчальні шаблони</label>
+          <label>Prompt templates</label>
           <div class="presets">
             <button data-preset="system">System Prompt</button>
             <button data-preset="fewshot">Few-Shot</button>
@@ -94,31 +102,30 @@
         </section>
 
         <section class="note">
-          <strong>Tokens і context window</strong>
+          <strong>Tokens and context window</strong>
           <p>
-            <b>Input/prompt</b> — усе, що модель читає.
-            <b>Output/completion</b> — те, що вона генерує. Для agent loop usage
-            сумується за всі запити.
+            <b>Input/prompt</b> — everything the model reads.
+            <b>Output/completion</b> — what it generates. For agent loop usage,
+            this is summed across all requests.
           </p>
         </section>
 
         <details class="guide">
-          <summary>Шпаргалка українською</summary>
+          <summary>Guide</summary>
           <dl>
             <dt>system</dt>
-            <dd>Правила поведінки моделі.</dd>
+            <dd>Behavior rules for the model.</dd>
             <dt>few-shot</dt>
-            <dd>Кілька прикладів бажаного вводу й відповіді.</dd>
+            <dd>A few examples of the desired input and response.</dd>
             <dt>XML tags</dt>
-            <dd>Явно відділяють контекст, задачу й обмеження.</dd>
+            <dd>Explicitly separate context, task, and constraints.</dd>
             <dt>reasoning</dt>
-            <dd>Просіть стислий перевірюваний доказ, а не приховані думки.</dd>
+            <dd>Ask for a concise verifiable explanation, not hidden reasoning.</dd>
             <dt>tools</dt>
-            <dd>Модель обирає функцію, але код виконує її сам.</dd>
+            <dd>The model chooses a function, but code executes it.</dd>
             <dt>agent loop</dt>
             <dd>
-              Модель може кілька разів вибирати tools, доки не поверне фінальну
-              відповідь.
+              The model can choose tools multiple times until it returns a final response.
             </dd>
           </dl>
         </details>
@@ -128,7 +135,10 @@
         <div class="workspace-head">
           <div>
             <p class="eyebrow">MESSAGE STACK</p>
-            <h2>Розмова</h2>
+            <h2>Conversation</h2>
+            <p id="activeCapabilities" class="active-capabilities">
+              Active mode: chat
+            </p>
           </div>
           <div class="workspace-buttons">
             <button id="openCapabilities" class="secondary">
@@ -137,7 +147,7 @@
             <button id="openPromptBuilder" class="secondary">
               Prompt builder
             </button>
-            <button id="addMessage" class="secondary">+ повідомлення</button>
+            <button id="addMessage" class="secondary">+ message</button>
           </div>
         </div>
 
@@ -145,10 +155,10 @@
 
         <div class="actions">
           <button id="compare" class="secondary">
-            Порівняти 0 / 0.7 / 1.0
+            Compare 0 / 0.7 / 1.0
           </button>
           <button id="send" class="primary">
-            Запустити модель <span>↗</span>
+            Run model <span>↗</span>
           </button>
         </div>
 
@@ -160,16 +170,16 @@
     <template id="messageTemplate">
       <article class="message">
         <div class="message-bar">
-          <select aria-label="Роль">
+          <select aria-label="Role">
             <option value="system">system</option>
             <option value="user">user</option>
             <option value="assistant">assistant</option>
           </select>
-          <button class="remove" aria-label="Видалити">×</button>
+          <button class="remove" aria-label="Delete">×</button>
         </div>
         <textarea
           rows="4"
-          placeholder="Введіть зміст повідомлення..."
+          placeholder="Enter message content..."
         ></textarea>
       </article>
     </template>
@@ -179,9 +189,9 @@
         <header class="dialog-head">
           <div>
             <p class="eyebrow">PROMPT COMPOSER</p>
-            <h2>Згенерувати prompt</h2>
+            <h2>Build Prompt</h2>
           </div>
-          <button value="cancel" class="remove" aria-label="Закрити">×</button>
+          <button value="cancel" class="remove" aria-label="Close">×</button>
         </header>
         <div class="builder-grid">
           <label
@@ -192,7 +202,7 @@
             >Response language
             <select id="builderLanguage">
               <option value="Ukrainian">Ukrainian</option>
-              <option value="English">English</option>
+              <option value="English" selected>English</option>
             </select>
           </label>
           <label class="wide"
@@ -208,7 +218,7 @@
             <textarea
               id="builderContext"
               rows="3"
-              placeholder="Optional facts or source material"
+              placeholder="Additional facts or materials"
             ></textarea>
           </label>
           <label class="wide"
@@ -235,7 +245,7 @@
           <label
             >Technique
             <select id="builderTechnique">
-              <option value="plain">Plain instructions</option>
+              <option value="plain">Simple instructions</option>
               <option value="xml">XML structure</option>
               <option value="reasoning">Verifiable steps</option>
             </select>
@@ -243,9 +253,9 @@
         </div>
         <pre id="promptPreview" class="prompt-preview"></pre>
         <div class="dialog-actions">
-          <button value="cancel">Скасувати</button>
+          <button value="cancel">Cancel</button>
           <button id="insertPrompt" value="cancel" class="primary">
-            Додати в messages
+            Add to messages
           </button>
         </div>
       </form>
@@ -258,7 +268,7 @@
             <p class="eyebrow">CAPABILITY CATALOG</p>
             <h2>Tools & skills</h2>
           </div>
-          <button id="closeCapabilities" class="remove" aria-label="Закрити">
+          <button id="closeCapabilities" class="remove" aria-label="Close">
             ×
           </button>
         </header>
@@ -267,8 +277,7 @@
           <button data-catalog-tab="skills">Skills</button>
         </nav>
         <p class="help">
-          Tool — атомарна функція, яку викликає модель. Skill — майбутній
-          багатоетапний workflow із prompts, tools і validation.
+          Tool — an atomic function the model can call. Skill — a future multi-step workflow with prompts, tools, and validation.
         </p>
         <section id="capabilityList" class="capability-list"></section>
       </div>

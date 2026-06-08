@@ -25,11 +25,16 @@ export const requestCompletion = async (requestBody, endpoint) => {
     body: JSON.stringify(requestBody),
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Запит не вдався');
+  if (!response.ok) throw new Error(data.error || 'Request failed');
   return data;
 };
 
-export const streamCompletion = async (requestBody, onChunk) => {
+export const streamCompletion = async (
+  requestBody,
+  onChunk,
+  onReasoningChunk,
+  onUsageChunk
+) => {
   const response = await fetch('/api/chat/stream', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -45,6 +50,8 @@ export const streamCompletion = async (requestBody, onChunk) => {
   let buffer = '';
   let reasoning = '';
   let content = '';
+  let usage = null;
+  let finishReason = 'streaming';
 
   while (true) {
     const { value, done } = await reader.read();
@@ -54,26 +61,34 @@ export const streamCompletion = async (requestBody, onChunk) => {
     buffer = events.pop() || '';
 
     for (const event of events) {
-      const line = event.split('\n').find((item) => item.startsWith('data:'));
-      if (!line) continue;
-      const payload = line.slice(5).trim();
-      if (payload === '[DONE]') continue;
-      const data = JSON.parse(payload);
+      const dataLines = event
+        .split('\n')
+        .filter((item) => item.trimStart().startsWith('data:'))
+        .map((line) => line.slice(line.indexOf('data:') + 5).trim());
+      for (const payload of dataLines) {
+        if (payload === '[DONE]') continue;
+        const data = JSON.parse(payload);
 
-      const delta = data.choices?.[0]?.delta || {};
-      if (delta.reasoning_content) {
-        reasoning += delta.reasoning_content;
-      }
-      if (delta.content) {
-        content += delta.content;
-      }
+        const delta = data.choices?.[0]?.delta || {};
+        if (delta.reasoning_content) {
+          reasoning += delta.reasoning_content;
+          if (onReasoningChunk) onReasoningChunk(reasoning);
+        }
+        if (delta.content) {
+          content += delta.content;
+        }
+        if (data.usage) {
+          usage = data.usage;
+          if (onUsageChunk) onUsageChunk(usage);
+        }
+        finishReason = data.choices?.[0]?.finish_reason || finishReason;
 
-      const reasoningText = reasoning
-        ? `> **Thinking:**\n> ${reasoning.replace(/\n/g, '\n> ')}\n\n`
-        : '';
-      onChunk(reasoningText + content);
+        onChunk(content);
+      }
     }
   }
+
+  return { reasoning: reasoning || null, content, usage, finishReason };
 };
 
 export const loadModels = async () => {
@@ -94,7 +109,7 @@ export const loadModels = async () => {
 
 export const loadCapabilities = async () => {
   const response = await fetch('/api/capabilities');
-  if (!response.ok) throw new Error('Не вдалося завантажити capabilities');
+  if (!response.ok) throw new Error('Failed to load capabilities');
   return await response.json();
 };
 
@@ -110,7 +125,7 @@ export const uploadFile = async (file) => {
 
 export const getUploadedFiles = async () => {
   const response = await fetch('/api/uploads');
-  if (!response.ok) throw new Error('Не вдалося завантажити список файлів');
+  if (!response.ok) throw new Error('Failed to load uploaded files list');
   return await response.json();
 };
 

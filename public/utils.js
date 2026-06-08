@@ -74,6 +74,7 @@ export const normalizedResult = (data, mode) => {
         ? 'fallback'
         : `valid after ${data.attempts} attempt(s)`,
       usage: data.usage,
+      reasoning: null,
     };
   }
 
@@ -85,18 +86,16 @@ export const normalizedResult = (data, mode) => {
         : `${data.iterations} agent iteration(s)`,
       usage: data.usage,
       trace: data.trace,
+      reasoning: null,
     };
   }
 
   const message = data.choices?.[0]?.message || {};
   let contentText = message.content || '';
+  let reasoning = null;
 
   if (message.reasoning_content) {
-    const reasoning = `> **Thinking:**\n> ${message.reasoning_content.replace(
-      /\n/g,
-      '\n> '
-    )}\n\n`;
-    contentText = reasoning + contentText;
+    reasoning = message.reasoning_content;
   }
 
   if (mode === 'rag' && data.sources) {
@@ -104,9 +103,10 @@ export const normalizedResult = (data, mode) => {
   }
 
   return {
-    content: contentText || 'Модель не повернула текст.',
+    content: contentText || 'The model returned no text.',
     finishReason: data.choices?.[0]?.finish_reason || 'unknown',
     usage: data.usage,
     chunks: data.ragChunks || [],
+    reasoning,
   };
 };

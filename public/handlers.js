@@ -120,18 +120,18 @@ export const setupFileUploadHandlers = async () => {
 
   elements.uploadedFiles.addEventListener('deleteFile', async (e) => {
     const { filename } = e.detail;
-    if (!confirm(`Видалити файл "${filename}"?`)) return;
+    if (!confirm(`Delete file "${filename}"?`)) return;
 
     try {
       const result = await deleteUploadedFile(filename);
       if (result.error) throw new Error(result.error);
 
-      elements.uploadStatus.textContent = `✔ ${filename} видалено.`;
+      elements.uploadStatus.textContent = `✔ ${filename} deleted.`;
       elements.uploadStatus.style.color = '#4CAF50';
       const uploads = await getUploadedFiles();
       renderUploadedFiles(elements.uploadedFiles, uploads.files || []);
     } catch (error) {
-      elements.uploadStatus.textContent = `✖ Видалити не вдалося: ${error.message}`;
+      elements.uploadStatus.textContent = `✖ Delete failed: ${error.message}`;
       elements.uploadStatus.style.color = '#f44336';
     }
   });

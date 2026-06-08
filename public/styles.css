@@ -488,6 +488,64 @@ button:disabled {
 .token-usage small {
   line-height: 1.35;
 }
+
+/* Loading Spinner */
+.loading-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-top: 2px solid var(--acid);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Thinking Block */
+.result-card .thinking-block {
+  margin-bottom: 16px;
+}
+
+.result-card .thinking-block details {
+  border-left: 3px solid #ffd8ca;
+  background: #fffef9;
+  padding: 12px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.result-card .thinking-block summary {
+  font-weight: 500;
+  color: #d97706;
+  user-select: none;
+  font-size: 0.93rem;
+  padding: 0;
+}
+
+.result-card .thinking-block summary:hover {
+  text-decoration: underline;
+}
+
+.result-card .thinking-block pre {
+  margin-top: 12px;
+  background: #f3f0e8;
+  padding: 10px;
+  border-radius: 3px;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .agent-trace {
   border-top: 2px solid var(--ink);
 }

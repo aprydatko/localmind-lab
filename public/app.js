@@ -25,7 +25,7 @@ import {
 import {
   buildPrompt as buildPromptFn,
   getMessages,
-  normalizedResult
+  normalizedResult,
 } from './utils.js';
 
 // ============================================================================
@@ -74,6 +74,26 @@ const setActiveModeIndicator = () => {
         : elements.mode.value,
   };
   renderActiveCapability(elements, appState.activeCapability);
+};
+
+const applyResponseLanguageToConversation = (language) => {
+  const systemMessage = [
+    ...elements.messages.querySelectorAll('.message'),
+  ].find((message) => message.querySelector('select').value === 'system');
+
+  if (!systemMessage) return;
+
+  const textarea = systemMessage.querySelector('textarea');
+  const currentValue = textarea.value || '';
+  const languagePhrase = `Respond in ${language}.`;
+
+  if (/Respond in [^.]+\./.test(currentValue)) {
+    textarea.value = currentValue.replace(/Respond in [^.]+\./, languagePhrase);
+  } else {
+    textarea.value = `${currentValue.trim()}
+
+${languagePhrase}`.trim();
+  }
 };
 
 const activateSkill = (skill) => {
@@ -133,11 +153,24 @@ const handleLoadCapabilities = async () => {
   }
 };
 
+const showLoadingState = () => {
+  const spinner = document.createElement('span');
+  spinner.className = 'loading-spinner';
+  elements.send.innerHTML = '';
+  elements.send.appendChild(spinner);
+  elements.send.appendChild(document.createTextNode('  Waiting...'));
+};
+
+const hideLoadingState = () => {
+  elements.send.innerHTML = 'Run model <span>↗</span>';
+};
+
 const run = async (temperatures) => {
   elements.error.hidden = true;
   elements.results.replaceChildren();
   elements.send.disabled = true;
   elements.compare.disabled = true;
+  showLoadingState();
 
   try {
     if (elements.mode.value === 'stream') {
@@ -148,7 +181,6 @@ const run = async (temperatures) => {
           elements.mode.value,
           true
         );
-        const output = card.querySelector('.answer');
         elements.results.append(card);
 
         const requestBody = buildRequestBody(
@@ -158,9 +190,60 @@ const run = async (temperatures) => {
           Number(elements.maxTokens.value)
         );
 
-        await streamCompletion(requestBody, (content) => {
+        let thinkingBlock = null;
+        const onReasoningChunk = (reasoning) => {
+          if (!thinkingBlock && reasoning) {
+            thinkingBlock = document.createElement('div');
+            thinkingBlock.className = 'thinking-block';
+            thinkingBlock.innerHTML = `
+              <details open>
+                <summary>💭 Thinking Process</summary>
+                <pre></pre>
+              </details>`;
+            card.insertBefore(thinkingBlock, card.querySelector('.answer'));
+          }
+          if (thinkingBlock) {
+            thinkingBlock.querySelector('pre').textContent = reasoning;
+          }
+        };
+
+        const onContentChunk = (content) => {
+          const output = card.querySelector('.answer');
           renderMarkdown(output, content);
-        });
+        };
+
+        const tokenUsageSection = card.querySelector('.token-usage');
+        const updateUsage = (usage) => {
+          if (!tokenUsageSection) return;
+          const strongs = [...tokenUsageSection.querySelectorAll('strong')];
+          if (strongs.length < 3) return;
+          strongs[0].textContent = usage.prompt_tokens ?? '—';
+          strongs[1].textContent = usage.completion_tokens ?? '—';
+          strongs[2].textContent = usage.total_tokens ?? '—';
+        };
+
+        const streamResult = await streamCompletion(
+          requestBody,
+          onContentChunk,
+          onReasoningChunk,
+          updateUsage
+        );
+
+        if (streamResult.usage) {
+          updateUsage(streamResult.usage);
+        }
+
+        if (
+          streamResult.finishReason &&
+          streamResult.finishReason !== 'streaming'
+        ) {
+          const finishLabel = card.querySelector('.result-head span');
+          if (finishLabel) finishLabel.textContent = streamResult.finishReason;
+        }
+
+        if (thinkingBlock) {
+          thinkingBlock.querySelector('details').open = false;
+        }
       }
       return;
     }
@@ -190,6 +273,7 @@ const run = async (temperatures) => {
   } finally {
     elements.send.disabled = false;
     elements.compare.disabled = elements.mode.value !== 'chat';
+    hideLoadingState();
   }
 };
 
@@ -230,6 +314,18 @@ const setupAllHandlers = () => {
         );
       }
     });
+
+  // Sync UI language selector with builder language
+  elements.uiLanguage.addEventListener('change', () => {
+    builder.language.value = elements.uiLanguage.value;
+    updateBuilderPreview(builder, buildPromptFn);
+    applyResponseLanguageToConversation(elements.uiLanguage.value);
+  });
+
+  builder.language.addEventListener('change', () => {
+    elements.uiLanguage.value = builder.language.value;
+    applyResponseLanguageToConversation(builder.language.value);
+  });
 
   // Messages
   document.querySelector('#addMessage').addEventListener('click', () => {
@@ -348,12 +444,12 @@ const initializeApplication = async () => {
     if (models[0]) elements.model.value = models[0].id;
 
     const status = document.querySelector('#connection');
-    status.innerHTML = `<span></span> ${offline ? 'сервер UI готовий' : 'llama.cpp online'}`;
+    status.innerHTML = `<span></span> ${offline ? 'UI server ready' : 'llama.cpp online'}`;
     status.classList.toggle('offline', offline);
   } catch (error) {
     console.error('Failed to load models:', error);
     const status = document.querySelector('#connection');
-    status.innerHTML = '<span></span> недоступно';
+    status.innerHTML = '<span></span> unavailable';
     status.classList.add('offline');
   }
 

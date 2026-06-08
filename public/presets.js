@@ -7,7 +7,7 @@ export const presets = {
     {
       role: 'system',
       content:
-        'You are a JavaScript tutor. Answer concisely in Ukrainian and include exactly one code example.',
+        'You are a JavaScript tutor. Answer concisely in English and include exactly one code example.',
     },
     {
       role: 'user',
@@ -73,11 +73,11 @@ export const presets = {
 };
 
 export const modeHelp = {
-  chat: 'Звичайна повна відповідь через /v1/chat/completions.',
-  stream: "Текст з'являється частинами через Server-Sent Events.",
-  rag: 'Шукає релевантні чанки з папки docs/ (наприклад, Project Nexus) і передає їх як контекст.',
+  chat: '💬 Standard full response. The model reads your question and returns one block.',
+  stream: "⚡ The answer arrives in real time via streaming (SSE). You see tokens as they are generated. Loading animation is enabled.",
+  rag: '📚 Document search (RAG). The system finds relevant sections from the local store and adds them as context. Sources are shown.',
   structured:
-    'Сервер вимагає JSON, перевіряє його Zod-схемою і повторює запит до 3 разів.',
+    '📋 Guaranteed JSON format. The model generates JSON, the server validates the schema and retries up to 3 times if it is invalid.',
   banking:
-    'Модель обирає одну з 3 mock-функцій; сервер виконує її та повертає результат моделі.',
+    '🏦 Tool-enabled agent. The model chooses functions (history, balance, rate) and executes them. Smart multi-step flow.',
 };

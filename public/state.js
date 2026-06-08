@@ -11,6 +11,7 @@ export const elements = {
   compare: document.querySelector('#compare'),
   model: document.querySelector('#model'),
   mode: document.querySelector('#mode'),
+  uiLanguage: document.querySelector('#uiLanguage'),
   modeHelp: document.querySelector('#modeHelp'),
   uploadBtn: document.querySelector('#uploadBtn'),
   fileUpload: document.querySelector('#fileUpload'),

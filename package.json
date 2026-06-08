@@ -16,8 +16,5 @@
     "dotenv": "^17.4.2",
     "marked": "^18.0.5",
     "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "playwright": "^1.60.0"
   }
 }

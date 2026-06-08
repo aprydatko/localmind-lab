@@ -74,7 +74,8 @@ export const presets = {
 
 export const modeHelp = {
   chat: '💬 Standard full response. The model reads your question and returns one block.',
-  stream: "⚡ The answer arrives in real time via streaming (SSE). You see tokens as they are generated. Loading animation is enabled.",
+  stream:
+    '⚡ The answer arrives in real time via streaming (SSE). You see tokens as they are generated. Loading animation is enabled.',
   rag: '📚 Document search (RAG). The system finds relevant sections from the local store and adds them as context. Sources are shown.',
   structured:
     '📋 Guaranteed JSON format. The model generates JSON, the server validates the schema and retries up to 3 times if it is invalid.',

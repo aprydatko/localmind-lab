@@ -1,99 +1,127 @@
-import { renderMarkdown } from "./markdown.js";
+import { renderMarkdown } from './markdown.js';
 
 const elements = {
-  messages: document.querySelector("#messages"),
-  results: document.querySelector("#results"),
-  error: document.querySelector("#error"),
-  send: document.querySelector("#send"),
-  compare: document.querySelector("#compare"),
-  model: document.querySelector("#model"),
-  mode: document.querySelector("#mode"),
-  modeHelp: document.querySelector("#modeHelp"),
-  temperature: document.querySelector("#temperature"),
-  maxTokens: document.querySelector("#maxTokens")
+  messages: document.querySelector('#messages'),
+  results: document.querySelector('#results'),
+  error: document.querySelector('#error'),
+  send: document.querySelector('#send'),
+  compare: document.querySelector('#compare'),
+  model: document.querySelector('#model'),
+  mode: document.querySelector('#mode'),
+  modeHelp: document.querySelector('#modeHelp'),
+  uploadBtn: document.querySelector('#uploadBtn'),
+  fileUpload: document.querySelector('#fileUpload'),
+  uploadStatus: document.querySelector('#uploadStatus'),
+  uploadedFiles: document.querySelector('#uploadedFiles'),
+  temperature: document.querySelector('#temperature'),
+  maxTokens: document.querySelector('#maxTokens'),
 };
 
 const builder = {
-  dialog: document.querySelector("#promptBuilder"),
-  role: document.querySelector("#builderRole"),
-  language: document.querySelector("#builderLanguage"),
-  task: document.querySelector("#builderTask"),
-  context: document.querySelector("#builderContext"),
-  constraints: document.querySelector("#builderConstraints"),
-  format: document.querySelector("#builderFormat"),
-  technique: document.querySelector("#builderTechnique"),
-  preview: document.querySelector("#promptPreview")
+  dialog: document.querySelector('#promptBuilder'),
+  role: document.querySelector('#builderRole'),
+  language: document.querySelector('#builderLanguage'),
+  task: document.querySelector('#builderTask'),
+  context: document.querySelector('#builderContext'),
+  constraints: document.querySelector('#builderConstraints'),
+  format: document.querySelector('#builderFormat'),
+  technique: document.querySelector('#builderTechnique'),
+  preview: document.querySelector('#promptPreview'),
 };
 
 let capabilities = { tools: [], skills: [] };
-let activeCatalogTab = "tools";
+let activeCatalogTab = 'tools';
 
 const presets = {
   system: [
     {
-      role: "system",
-      content: "You are a JavaScript tutor. Answer concisely in Ukrainian and include exactly one code example."
+      role: 'system',
+      content:
+        'You are a JavaScript tutor. Answer concisely in Ukrainian and include exactly one code example.',
     },
-    { role: "user", content: "Explain the difference between map and forEach." }
+    {
+      role: 'user',
+      content: 'Explain the difference between map and forEach.',
+    },
   ],
   fewshot: [
     {
-      role: "system",
-      content: "Classify sentiment using exactly one label: positive, neutral, or negative."
+      role: 'system',
+      content:
+        'Classify sentiment using exactly one label: positive, neutral, or negative.',
     },
-    { role: "user", content: "This release is excellent!" },
-    { role: "assistant", content: "positive" },
-    { role: "user", content: "The application sometimes freezes." }
+    { role: 'user', content: 'This release is excellent!' },
+    { role: 'assistant', content: 'positive' },
+    { role: 'user', content: 'The application sometimes freezes.' },
   ],
   xml: [
     {
-      role: "system",
-      content: "Follow <instructions>. Use only information inside <context>. Return JSON only."
+      role: 'system',
+      content:
+        'Follow <instructions>. Use only information inside <context>. Return JSON only.',
     },
     {
-      role: "user",
+      role: 'user',
       content: `<context>Mars has two moons: Phobos and Deimos.</context>
 <instructions>List the moons of Mars.</instructions>
-<constraints>Use the key "moons".</constraints>`
-    }
+<constraints>Use the key "moons".</constraints>`,
+    },
   ],
   reasoning: [
     {
-      role: "system",
-      content: "Solve the task. Give the final answer and a concise, verifiable justification in three steps. Do not reveal private hidden reasoning."
+      role: 'system',
+      content:
+        'Solve the task. Give the final answer and a concise, verifiable justification in three steps. Do not reveal private hidden reasoning.',
     },
     {
-      role: "user",
-      content: "A box contains 24 pencils. One third are blue and the rest are red. How many are red?"
-    }
+      role: 'user',
+      content:
+        'A box contains 24 pencils. One third are blue and the rest are red. How many are red?',
+    },
   ],
   document: [
     {
-      role: "user",
-      content: "Analyze this document: Invoice INV-42 requests EUR 9,800. Payment is 45 days overdue and the supplier bank account recently changed."
-    }
+      role: 'user',
+      content:
+        'Analyze this document: Invoice INV-42 requests EUR 9,800. Payment is 45 days overdue and the supplier bank account recently changed.',
+    },
   ],
   banking: [
     {
-      role: "user",
-      content: "What is my simulated balance, show my last two transactions, and convert the balance from UAH to USD?"
-    }
-  ]
+      role: 'user',
+      content:
+        'What is my simulated balance, show my last two transactions, and convert the balance from UAH to USD?',
+    },
+  ],
+  rag: [
+    {
+      role: 'user',
+      content:
+        'What is the access code for Project Nexus and what happens if the resonance drops below 400 Hz?',
+    },
+  ],
 };
 
 const modeHelp = {
-  chat: "Звичайна повна відповідь через /v1/chat/completions.",
+  chat: 'Звичайна повна відповідь через /v1/chat/completions.',
   stream: "Текст з'являється частинами через Server-Sent Events.",
-  structured: "Сервер вимагає JSON, перевіряє його Zod-схемою і повторює запит до 3 разів.",
-  banking: "Модель обирає одну з 3 mock-функцій; сервер виконує її та повертає результат моделі."
+  rag: 'Шукає релевантні чанки з папки docs/ (наприклад, Project Nexus) і передає їх як контекст.',
+  structured:
+    'Сервер вимагає JSON, перевіряє його Zod-схемою і повторює запит до 3 разів.',
+  banking:
+    'Модель обирає одну з 3 mock-функцій; сервер виконує її та повертає результат моделі.',
 };
 
-const addMessage = (role = "user", content = "") => {
-  const node = document.querySelector("#messageTemplate").content.cloneNode(true);
-  const article = node.querySelector(".message");
-  article.querySelector("select").value = role;
-  article.querySelector("textarea").value = content;
-  article.querySelector(".remove").addEventListener("click", () => article.remove());
+const addMessage = (role = 'user', content = '') => {
+  const node = document
+    .querySelector('#messageTemplate')
+    .content.cloneNode(true);
+  const article = node.querySelector('.message');
+  article.querySelector('select').value = role;
+  article.querySelector('textarea').value = content;
+  article
+    .querySelector('.remove')
+    .addEventListener('click', () => article.remove());
   elements.messages.append(node);
 };
 
@@ -102,13 +130,14 @@ const setMessages = (messages) => {
   messages.forEach(({ role, content }) => addMessage(role, content));
 };
 
-const compactLines = (value) => value
-  .split(/\r?\n|;/)
-  .map((line) => line.trim())
-  .filter(Boolean);
+const compactLines = (value) =>
+  value
+    .split(/\r?\n|;/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
 const buildPrompt = () => {
-  const role = `${builder.role.value.trim() || "You are a helpful assistant"}. Respond in ${builder.language.value}.`;
+  const role = `${builder.role.value.trim() || 'You are a helpful assistant'}. Respond in ${builder.language.value}.`;
   const task = builder.task.value.trim() || "Complete the user's task.";
   const context = builder.context.value.trim();
   const constraints = compactLines(builder.constraints.value);
@@ -116,27 +145,32 @@ const buildPrompt = () => {
   const technique = builder.technique.value;
   let userPrompt;
 
-  if (technique === "xml") {
+  if (technique === 'xml') {
     userPrompt = `<task>\n${task}\n</task>
-${context ? `<context>\n${context}\n</context>\n` : ""}<constraints>
-${constraints.length ? constraints.map((item) => `- ${item}`).join("\n") : "- Follow the task exactly"}
+${context ? `<context>\n${context}\n</context>\n` : ''}<constraints>
+${constraints.length ? constraints.map((item) => `- ${item}`).join('\n') : '- Follow the task exactly'}
 - Return ${format}.
 </constraints>`;
   } else {
     const sections = [`Task:\n${task}`];
     if (context) sections.push(`Context:\n${context}`);
-    if (constraints.length) sections.push(`Constraints:\n${constraints.map((item) => `- ${item}`).join("\n")}`);
+    if (constraints.length)
+      sections.push(
+        `Constraints:\n${constraints.map((item) => `- ${item}`).join('\n')}`
+      );
     sections.push(`Output format:\n${format}.`);
-    if (technique === "reasoning") {
-      sections.push("Provide a concise, verifiable justification. Do not reveal private hidden reasoning.");
+    if (technique === 'reasoning') {
+      sections.push(
+        'Provide a concise, verifiable justification. Do not reveal private hidden reasoning.'
+      );
     }
-    userPrompt = sections.join("\n\n");
+    userPrompt = sections.join('\n\n');
   }
 
   return {
     system: role,
     user: userPrompt,
-    preview: `SYSTEM\n${role}\n\nUSER\n${userPrompt}`
+    preview: `SYSTEM\n${role}\n\nUSER\n${userPrompt}`,
   };
 };
 
@@ -144,78 +178,189 @@ const updatePromptPreview = () => {
   builder.preview.textContent = buildPrompt().preview;
 };
 
-const getMessages = () => [...elements.messages.querySelectorAll(".message")]
-  .map((message) => ({
-    role: message.querySelector("select").value,
-    content: message.querySelector("textarea").value
-  }))
-  .filter((message) => message.content.trim());
+const getMessages = () =>
+  [...elements.messages.querySelectorAll('.message')]
+    .map((message) => ({
+      role: message.querySelector('select').value,
+      content: message.querySelector('textarea').value,
+    }))
+    .filter((message) => message.content.trim());
 
 const requestBody = (temperature) => ({
   model: elements.model.value,
   messages: getMessages(),
   temperature,
-  max_tokens: Number(elements.maxTokens.value)
+  max_tokens: Number(elements.maxTokens.value),
 });
 
-const endpointForMode = () => ({
-  chat: "/api/chat",
-  structured: "/api/structured",
-  banking: "/api/banking-agent"
-})[elements.mode.value];
+const endpointForMode = () =>
+  ({
+    chat: '/api/chat',
+    rag: '/api/rag',
+    structured: '/api/structured',
+    banking: '/api/banking-agent',
+  })[elements.mode.value];
 
 const requestCompletion = async (temperature) => {
   const response = await fetch(endpointForMode(), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(requestBody(temperature))
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(requestBody(temperature)),
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Запит не вдався");
+  if (!response.ok) throw new Error(data.error || 'Запит не вдався');
   return data;
 };
 
 const normalizedResult = (data) => {
-  if (elements.mode.value === "structured") {
+  if (elements.mode.value === 'structured') {
     return {
       content: JSON.stringify(data.data, null, 2),
-      finishReason: data.fallback ? "fallback" : `valid after ${data.attempts} attempt(s)`,
-      usage: data.usage
+      finishReason: data.fallback
+        ? 'fallback'
+        : `valid after ${data.attempts} attempt(s)`,
+      usage: data.usage,
     };
   }
 
-  if (elements.mode.value === "banking") {
+  if (elements.mode.value === 'banking') {
     return {
       content: data.answer,
       finishReason: data.stopped
-        ? "max iterations"
+        ? 'max iterations'
         : `${data.iterations} agent iteration(s)`,
       usage: data.usage,
-      trace: data.trace
+      trace: data.trace,
     };
   }
 
   const message = data.choices?.[0]?.message || {};
-  let contentText = message.content || "";
-  
+  let contentText = message.content || '';
+
   if (message.reasoning_content) {
     const reasoning = `> **Thinking:**\n> ${message.reasoning_content.replace(/\n/g, '\n> ')}\n\n`;
     contentText = reasoning + contentText;
   }
 
+  if (elements.mode.value === 'rag' && data.sources) {
+    contentText += `\n\n**Sources:** ${data.sources.join(', ')}`;
+  }
+
   return {
-    content: contentText || "Модель не повернула текст.",
-    finishReason: data.choices?.[0]?.finish_reason || "unknown",
-    usage: data.usage
+    content: contentText || 'Модель не повернула текст.',
+    finishReason: data.choices?.[0]?.finish_reason || 'unknown',
+    usage: data.usage,
+    chunks: data.ragChunks || [],
   };
+};
+
+const renderUploadedFiles = (files = []) => {
+  elements.uploadedFiles.replaceChildren();
+  const supportedExts = ['.pdf', '.md', '.txt'];
+  const filtered = files.filter((f) => {
+    const ext = f.substring(f.lastIndexOf('.')).toLowerCase();
+    return supportedExts.includes(ext);
+  });
+
+  if (!filtered.length) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-message';
+    empty.textContent = 'Немає завантажених файлів';
+    elements.uploadedFiles.append(empty);
+    return;
+  }
+
+  const title = document.createElement('div');
+  title.className = 'uploaded-files-head';
+  title.textContent = 'Файли в docs/';
+  elements.uploadedFiles.append(title);
+
+  filtered.forEach((filename) => {
+    const item = document.createElement('div');
+    item.className = 'uploaded-file';
+
+    const label = document.createElement('span');
+    label.textContent = filename;
+    item.append(label);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'secondary-btn';
+    button.textContent = 'Видалити';
+    button.addEventListener('click', () => deleteUploadedFile(filename));
+    item.append(button);
+
+    elements.uploadedFiles.append(item);
+  });
+};
+
+const fetchUploadedFiles = async () => {
+  try {
+    const response = await fetch('/api/uploads');
+    if (!response.ok) throw new Error('Не вдалося завантажити список файлів');
+    const data = await response.json();
+    renderUploadedFiles(data.files || []);
+  } catch (error) {
+    console.warn('[uploads] ', error);
+    elements.uploadedFiles.replaceChildren();
+  }
+};
+
+const deleteUploadedFile = async (filename) => {
+  if (!confirm(`Видалити файл "${filename}"?`)) return;
+
+  try {
+    const response = await fetch(`/api/upload/${encodeURIComponent(filename)}`, {
+      method: 'DELETE',
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Delete failed');
+
+    elements.uploadStatus.textContent = `✔ ${filename} видалено.`;
+    elements.uploadStatus.style.color = '#4CAF50';
+    await fetchUploadedFiles();
+  } catch (error) {
+    elements.uploadStatus.textContent = `✖ Видалити не вдалося: ${error.message}`;
+    elements.uploadStatus.style.color = '#f44336';
+  }
+};
+
+const renderChunkDebug = (chunks) => {
+  if (!chunks || chunks.length === 0) return null;
+
+  const section = document.createElement('section');
+  section.className = 'rag-chunks';
+
+  const header = document.createElement('div');
+  header.className = 'chunks-head';
+  header.textContent = 'Retrieved chunks';
+  section.append(header);
+
+  chunks.forEach((chunk, index) => {
+    const article = document.createElement('article');
+    article.className = 'chunk-item';
+
+    const meta = document.createElement('div');
+    meta.className = 'chunk-meta';
+    meta.textContent = `Chunk ${index + 1} · Source: ${chunk.source}`;
+    article.append(meta);
+
+    const pre = document.createElement('pre');
+    pre.textContent = chunk.content.slice(0, 800);
+    article.append(pre);
+
+    section.append(article);
+  });
+
+  return section;
 };
 
 const resultCard = (data, temperature, streaming = false) => {
   const result = streaming
-    ? { content: "", finishReason: "streaming", usage: {} }
+    ? { content: '', finishReason: 'streaming', usage: {} }
     : normalizedResult(data);
-  const card = document.createElement("article");
-  card.className = "result-card";
+  const card = document.createElement('article');
+  card.className = 'result-card';
   card.innerHTML = `
     <div class="result-head">
       <strong>temperature ${temperature}</strong>
@@ -225,21 +370,28 @@ const resultCard = (data, temperature, streaming = false) => {
     <section class="token-usage">
       <div>
         <span>INPUT / PROMPT</span>
-        <strong>${result.usage?.prompt_tokens ?? "—"}</strong>
+        <strong>${result.usage?.prompt_tokens ?? '—'}</strong>
         <small>messages + system prompt + tools + попередні результати</small>
       </div>
       <div>
         <span>OUTPUT / COMPLETION</span>
-        <strong>${result.usage?.completion_tokens ?? "—"}</strong>
+        <strong>${result.usage?.completion_tokens ?? '—'}</strong>
         <small>токени, які згенерувала модель</small>
       </div>
       <div>
         <span>TOTAL</span>
-        <strong>${result.usage?.total_tokens ?? "—"}</strong>
+        <strong>${result.usage?.total_tokens ?? '—'}</strong>
         <small>input + output для всіх LLM-викликів</small>
       </div>
     </section>`;
-  renderMarkdown(card.querySelector(".answer"), result.content);
+  renderMarkdown(card.querySelector('.answer'), result.content);
+
+  if (result.chunks?.length) {
+    const chunkDebug = renderChunkDebug(result.chunks);
+    if (chunkDebug) {
+      card.append(chunkDebug);
+    }
+  }
 
   if (result.trace?.length) {
     card.append(agentTrace(result.trace));
@@ -249,33 +401,37 @@ const resultCard = (data, temperature, streaming = false) => {
 };
 
 const agentTrace = (trace) => {
-  const details = document.createElement("details");
-  details.className = "agent-trace";
+  const details = document.createElement('details');
+  details.className = 'agent-trace';
   details.open = true;
-  const summary = document.createElement("summary");
+  const summary = document.createElement('summary');
   summary.textContent = `Agent Loop trace (${trace.length} steps)`;
   details.append(summary);
 
   trace.forEach((step) => {
-    const item = document.createElement("article");
+    const item = document.createElement('article');
     item.className = `trace-step ${step.type}`;
 
-    if (step.type === "model") {
+    if (step.type === 'model') {
       item.innerHTML = `
         <span>MODEL · iteration ${step.iteration}</span>
-        <strong>${step.decision === "tool_calls" ? "Selected tool(s)" : "Returned final answer"}</strong>
-        <p>${step.toolNames?.length ? step.toolNames.join(", ") : "No tool selected"}</p>
-        <small>input ${step.usage?.prompt_tokens ?? "—"} · output ${step.usage?.completion_tokens ?? "—"}</small>`;
+        <strong>${step.decision === 'tool_calls' ? 'Selected tool(s)' : 'Returned final answer'}</strong>
+        <p>${step.toolNames?.length ? step.toolNames.join(', ') : 'No tool selected'}</p>
+        <small>input ${step.usage?.prompt_tokens ?? '—'} · output ${step.usage?.completion_tokens ?? '—'}</small>`;
     } else {
-      const title = document.createElement("span");
-      const name = document.createElement("strong");
-      const code = document.createElement("pre");
+      const title = document.createElement('span');
+      const name = document.createElement('strong');
+      const code = document.createElement('pre');
       title.textContent = `TOOL · iteration ${step.iteration}`;
       name.textContent = step.name;
-      code.textContent = JSON.stringify({
-        arguments: step.arguments,
-        result: step.result
-      }, null, 2);
+      code.textContent = JSON.stringify(
+        {
+          arguments: step.arguments,
+          result: step.result,
+        },
+        null,
+        2
+      );
       item.append(title, name, code);
     }
 
@@ -287,39 +443,39 @@ const agentTrace = (trace) => {
 
 const streamCompletion = async (temperature) => {
   const card = resultCard({}, temperature, true);
-  const output = card.querySelector(".answer");
-  let markdown = "";
+  const output = card.querySelector('.answer');
+  let markdown = '';
   elements.results.append(card);
-  const response = await fetch("/api/chat/stream", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(requestBody(temperature))
+  const response = await fetch('/api/chat/stream', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(requestBody(temperature)),
   });
 
   if (!response.ok || !response.body) {
     const data = await response.json();
-    throw new Error(data.error || "Streaming request failed");
+    throw new Error(data.error || 'Streaming request failed');
   }
 
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-  let buffer = "";
-  let reasoning = "";
-  let content = "";
+  let buffer = '';
+  let reasoning = '';
+  let content = '';
 
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
     buffer += value;
-    const events = buffer.split("\n\n");
-    buffer = events.pop() || "";
+    const events = buffer.split('\n\n');
+    buffer = events.pop() || '';
 
     for (const event of events) {
-      const line = event.split("\n").find((item) => item.startsWith("data:"));
+      const line = event.split('\n').find((item) => item.startsWith('data:'));
       if (!line) continue;
       const payload = line.slice(5).trim();
-      if (payload === "[DONE]") continue;
+      if (payload === '[DONE]') continue;
       const data = JSON.parse(payload);
-      
+
       const delta = data.choices?.[0]?.delta || {};
       if (delta.reasoning_content) {
         reasoning += delta.reasoning_content;
@@ -327,8 +483,10 @@ const streamCompletion = async (temperature) => {
       if (delta.content) {
         content += delta.content;
       }
-      
-      const reasoningText = reasoning ? `> **Thinking:**\n> ${reasoning.replace(/\n/g, '\n> ')}\n\n` : "";
+
+      const reasoningText = reasoning
+        ? `> **Thinking:**\n> ${reasoning.replace(/\n/g, '\n> ')}\n\n`
+        : '';
       renderMarkdown(output, reasoningText + content);
     }
   }
@@ -341,15 +499,16 @@ const run = async (temperatures) => {
   elements.compare.disabled = true;
 
   try {
-    if (elements.mode.value === "stream") {
-      for (const temperature of temperatures) await streamCompletion(temperature);
+    if (elements.mode.value === 'stream') {
+      for (const temperature of temperatures)
+        await streamCompletion(temperature);
       return;
     }
 
     const results = await Promise.all(
       temperatures.map(async (temperature) => ({
         temperature,
-        data: await requestCompletion(temperature)
+        data: await requestCompletion(temperature),
       }))
     );
     results.forEach(({ data, temperature }) => {
@@ -360,49 +519,58 @@ const run = async (temperatures) => {
     elements.error.hidden = false;
   } finally {
     elements.send.disabled = false;
-    elements.compare.disabled = elements.mode.value !== "chat";
+    elements.compare.disabled = elements.mode.value !== 'chat';
   }
 };
 
 const updateMode = () => {
   elements.modeHelp.textContent = modeHelp[elements.mode.value];
-  elements.compare.disabled = elements.mode.value !== "chat";
-  if (elements.mode.value === "structured") setMessages(presets.document);
-  if (elements.mode.value === "banking") setMessages(presets.banking);
+  elements.compare.disabled = elements.mode.value !== 'chat';
+
+  if (elements.mode.value === 'rag') {
+    elements.uploadBtn.style.display = 'inline-block';
+  } else {
+    elements.uploadBtn.style.display = 'none';
+    elements.uploadStatus.textContent = '';
+  }
+
+  if (elements.mode.value === 'structured') setMessages(presets.document);
+  if (elements.mode.value === 'banking') setMessages(presets.banking);
+  if (elements.mode.value === 'rag') setMessages(presets.rag);
 };
 
 const loadModels = async () => {
-  const status = document.querySelector("#connection");
+  const status = document.querySelector('#connection');
   try {
-    const response = await fetch("/api/models");
+    const response = await fetch('/api/models');
     const data = await response.json();
     const models = data.data || [];
-    document.querySelector("#models").replaceChildren(
+    document.querySelector('#models').replaceChildren(
       ...models.map(({ id }) => {
-        const option = document.createElement("option");
+        const option = document.createElement('option');
         option.value = id;
         return option;
       })
     );
     if (models[0]) elements.model.value = models[0].id;
-    status.innerHTML = `<span></span> ${data.offline ? "сервер UI готовий" : "llama.cpp online"}`;
-    status.classList.toggle("offline", Boolean(data.offline));
+    status.innerHTML = `<span></span> ${data.offline ? 'сервер UI готовий' : 'llama.cpp online'}`;
+    status.classList.toggle('offline', Boolean(data.offline));
   } catch {
-    status.innerHTML = "<span></span> недоступно";
-    status.classList.add("offline");
+    status.innerHTML = '<span></span> недоступно';
+    status.classList.add('offline');
   }
 };
 
 const renderCapabilities = () => {
-  const list = document.querySelector("#capabilityList");
+  const list = document.querySelector('#capabilityList');
   list.replaceChildren();
   const items = capabilities[activeCatalogTab] || [];
 
   items.forEach((item) => {
-    const card = document.createElement("article");
-    card.className = "capability-card";
+    const card = document.createElement('article');
+    card.className = 'capability-card';
 
-    if (activeCatalogTab === "tools") {
+    if (activeCatalogTab === 'tools') {
       const fn = item.function;
       card.innerHTML = `
         <div class="capability-head">
@@ -414,7 +582,11 @@ const renderCapabilities = () => {
           <summary>Parameters JSON Schema</summary>
           <pre></pre>
         </details>`;
-      card.querySelector("pre").textContent = JSON.stringify(fn.parameters, null, 2);
+      card.querySelector('pre').textContent = JSON.stringify(
+        fn.parameters,
+        null,
+        2
+      );
     } else {
       card.innerHTML = `
         <div class="capability-head">
@@ -429,58 +601,108 @@ const renderCapabilities = () => {
 };
 
 const loadCapabilities = async () => {
-  const response = await fetch("/api/capabilities");
-  if (!response.ok) throw new Error("Не вдалося завантажити capabilities");
+  const response = await fetch('/api/capabilities');
+  if (!response.ok) throw new Error('Не вдалося завантажити capabilities');
   capabilities = await response.json();
   renderCapabilities();
 };
 
-document.querySelector("#addMessage").addEventListener("click", () => addMessage());
-document.querySelector("#openPromptBuilder").addEventListener("click", () => {
+// File Upload Logic
+elements.uploadBtn.addEventListener('click', () => {
+  elements.fileUpload.click();
+});
+
+elements.fileUpload.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  elements.uploadStatus.textContent = 'Uploading...';
+  elements.uploadStatus.style.color = '#888';
+
+  try {
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    const result = await response.json();
+
+    if (response.ok) {
+      elements.uploadStatus.textContent = `✔ ${result.originalname} uploaded and indexed!`;
+      elements.uploadStatus.style.color = '#4CAF50';
+      await fetchUploadedFiles();
+    } else {
+      elements.uploadStatus.textContent = `✖ Error: ${result.error}`;
+      elements.uploadStatus.style.color = '#f44336';
+    }
+  } catch (err) {
+    elements.uploadStatus.textContent = `✖ Upload failed: ${err.message}`;
+    elements.uploadStatus.style.color = '#f44336';
+  }
+
+  elements.fileUpload.value = ''; // Reset input
+});
+
+document
+  .querySelector('#addMessage')
+  .addEventListener('click', () => addMessage());
+document.querySelector('#openPromptBuilder').addEventListener('click', () => {
   updatePromptPreview();
   builder.dialog.showModal();
 });
-document.querySelector("#insertPrompt").addEventListener("click", () => {
+document.querySelector('#insertPrompt').addEventListener('click', () => {
   const prompt = buildPrompt();
   setMessages([
-    { role: "system", content: prompt.system },
-    { role: "user", content: prompt.user }
+    { role: 'system', content: prompt.system },
+    { role: 'user', content: prompt.user },
   ]);
 });
-document.querySelector("#openCapabilities").addEventListener("click", async () => {
-  document.querySelector("#capabilitiesDialog").showModal();
-  if (capabilities.tools.length === 0) await loadCapabilities();
+document
+  .querySelector('#openCapabilities')
+  .addEventListener('click', async () => {
+    document.querySelector('#capabilitiesDialog').showModal();
+    if (capabilities.tools.length === 0) await loadCapabilities();
+  });
+document.querySelector('#closeCapabilities').addEventListener('click', () => {
+  document.querySelector('#capabilitiesDialog').close();
 });
-document.querySelector("#closeCapabilities").addEventListener("click", () => {
-  document.querySelector("#capabilitiesDialog").close();
-});
-document.querySelectorAll("[data-catalog-tab]").forEach((button) => {
-  button.addEventListener("click", () => {
+document.querySelectorAll('[data-catalog-tab]').forEach((button) => {
+  button.addEventListener('click', () => {
     activeCatalogTab = button.dataset.catalogTab;
-    document.querySelectorAll("[data-catalog-tab]").forEach((tab) => {
-      tab.classList.toggle("active", tab === button);
+    document.querySelectorAll('[data-catalog-tab]').forEach((tab) => {
+      tab.classList.toggle('active', tab === button);
     });
     renderCapabilities();
   });
 });
-Object.values(builder).filter((item) => item instanceof HTMLElement).forEach((element) => {
-  if (["INPUT", "TEXTAREA", "SELECT"].includes(element.tagName)) {
-    element.addEventListener("input", updatePromptPreview);
-  }
+Object.values(builder)
+  .filter((item) => item instanceof HTMLElement)
+  .forEach((element) => {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName)) {
+      element.addEventListener('input', updatePromptPreview);
+    }
+  });
+elements.send.addEventListener('click', () =>
+  run([Number(elements.temperature.value)])
+);
+elements.compare.addEventListener('click', () => run([0, 0.7, 1]));
+elements.mode.addEventListener('change', updateMode);
+elements.temperature.addEventListener('input', () => {
+  document.querySelector('#temperatureValue').value =
+    elements.temperature.value;
 });
-elements.send.addEventListener("click", () => run([Number(elements.temperature.value)]));
-elements.compare.addEventListener("click", () => run([0, 0.7, 1]));
-elements.mode.addEventListener("change", updateMode);
-elements.temperature.addEventListener("input", () => {
-  document.querySelector("#temperatureValue").value = elements.temperature.value;
+elements.maxTokens.addEventListener('input', () => {
+  document.querySelector('#maxTokensValue').value = elements.maxTokens.value;
 });
-elements.maxTokens.addEventListener("input", () => {
-  document.querySelector("#maxTokensValue").value = elements.maxTokens.value;
-});
-document.querySelectorAll("[data-preset]").forEach((button) => {
-  button.addEventListener("click", () => setMessages(presets[button.dataset.preset]));
+document.querySelectorAll('[data-preset]').forEach((button) => {
+  button.addEventListener('click', () =>
+    setMessages(presets[button.dataset.preset])
+  );
 });
 
 setMessages(presets.system);
 updateMode();
 loadModels();
+fetchUploadedFiles();

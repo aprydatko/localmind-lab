@@ -120,12 +120,15 @@
             <dt>XML tags</dt>
             <dd>Explicitly separate context, task, and constraints.</dd>
             <dt>reasoning</dt>
-            <dd>Ask for a concise verifiable explanation, not hidden reasoning.</dd>
+            <dd>
+              Ask for a concise verifiable explanation, not hidden reasoning.
+            </dd>
             <dt>tools</dt>
             <dd>The model chooses a function, but code executes it.</dd>
             <dt>agent loop</dt>
             <dd>
-              The model can choose tools multiple times until it returns a final response.
+              The model can choose tools multiple times until it returns a final
+              response.
             </dd>
           </dl>
         </details>
@@ -154,12 +157,8 @@
         <div id="messages"></div>
 
         <div class="actions">
-          <button id="compare" class="secondary">
-            Compare 0 / 0.7 / 1.0
-          </button>
-          <button id="send" class="primary">
-            Run model <span>↗</span>
-          </button>
+          <button id="compare" class="secondary">Compare 0 / 0.7 / 1.0</button>
+          <button id="send" class="primary">Run model <span>↗</span></button>
         </div>
 
         <div id="error" class="error" hidden></div>
@@ -177,10 +176,7 @@
           </select>
           <button class="remove" aria-label="Delete">×</button>
         </div>
-        <textarea
-          rows="4"
-          placeholder="Enter message content..."
-        ></textarea>
+        <textarea rows="4" placeholder="Enter message content..."></textarea>
       </article>
     </template>
 
@@ -277,7 +273,8 @@
           <button data-catalog-tab="skills">Skills</button>
         </nav>
         <p class="help">
-          Tool — an atomic function the model can call. Skill — a future multi-step workflow with prompts, tools, and validation.
+          Tool — an atomic function the model can call. Skill — a future
+          multi-step workflow with prompts, tools, and validation.
         </p>
         <section id="capabilityList" class="capability-list"></section>
       </div>

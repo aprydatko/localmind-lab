@@ -1,7 +1,7 @@
 import { buildChatRequest } from "../chat-request.js";
-import { client, fallbackModel } from "../llama-client.js";
+import { sendApiError } from "../utils/api-error.js";
 
-export const buildRagChat = (ragService) => async (req, res) => {
+export const buildRagChat = (client, fallbackModel, ragService) => async (req, res) => {
   try {
     const input = req.body;
 
@@ -59,6 +59,6 @@ ${contextText || "No relevant context found."}
 
     res.json(result);
   } catch (error) {
-    res.status(502).json({ error: error.message });
+    sendApiError(res, error);
   }
 };

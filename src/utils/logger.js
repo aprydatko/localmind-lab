@@ -20,10 +20,17 @@ const formatLog = (level, message, meta = {}) => {
     ...meta
   };
   
+  const timestamp = getTimestamp();
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[${logEntry.timestamp}] [${level}]`, message, meta);
+    const logFn = level === LOG_LEVELS.ERROR ? console.error
+      : level === LOG_LEVELS.WARN ? console.warn
+      : console.log;
+    logFn(`[${timestamp}] [${level}]`, message, meta);
   } else {
-    console.log(JSON.stringify(logEntry));
+    const logFn = level === LOG_LEVELS.ERROR ? console.error
+      : level === LOG_LEVELS.WARN ? console.warn
+      : console.log;
+    logFn(JSON.stringify(logEntry));
   }
   
   return logEntry;

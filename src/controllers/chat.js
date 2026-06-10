@@ -1,18 +1,18 @@
 import { buildChatRequest } from "../chat-request.js";
 import { runStructuredAnalysis } from "../structured-output.js";
-import { client, fallbackModel } from "../llama-client.js";
+import { sendApiError } from "../utils/api-error.js";
 
-export const proxyChat = async (req, res) => {
+export const buildProxyChat = (client, fallbackModel) => async (req, res) => {
   try {
     const input = req.body;
     const result = await client.chat(buildChatRequest(input, fallbackModel));
     res.json(result);
   } catch (error) {
-    res.status(502).json({ error: error.message });
+    sendApiError(res, error);
   }
 };
 
-export const structuredChat = async (req, res) => {
+export const buildStructuredChat = (client, fallbackModel) => async (req, res) => {
   try {
     const input = req.body;
     const result = await runStructuredAnalysis({
@@ -21,11 +21,11 @@ export const structuredChat = async (req, res) => {
     });
     res.json(result);
   } catch (error) {
-    res.status(502).json({ error: error.message });
+    sendApiError(res, error);
   }
 };
 
-export const streamChat = async (req, res) => {
+export const buildStreamChat = (client, fallbackModel) => async (req, res) => {
   try {
     const input = req.body;
     const upstream = await client.request("/v1/chat/completions", {
@@ -49,7 +49,7 @@ export const streamChat = async (req, res) => {
     for await (const chunk of upstream.body) res.write(chunk);
     res.end();
   } catch (error) {
-    if (!res.headersSent) return res.status(502).json({ error: error.message });
+    if (!res.headersSent) return sendApiError(res, error);
     res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
     res.end();
   }

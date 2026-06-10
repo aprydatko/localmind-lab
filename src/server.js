@@ -3,10 +3,10 @@ import express from "express";
 import multer from "multer";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { client } from "./llama-client.js";
+import { client, fallbackModel } from "./llama-client.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
-import { bankingChat } from "./controllers/agent.js";
-import { proxyChat, streamChat, structuredChat } from "./controllers/chat.js";
+import { buildBankingChat } from "./controllers/agent.js";
+import { buildProxyChat, buildStreamChat, buildStructuredChat } from "./controllers/chat.js";
 import { buildRagChat } from "./controllers/rag.js";
 import { getCapabilities, proxyModels } from "./controllers/system.js";
 import {
@@ -38,11 +38,11 @@ const upload = multer({ storage });
 app.use(express.json({ limit: "1mb" }));
 
 // API Routes
-app.post("/api/chat", proxyChat);
-app.post("/api/chat/stream", streamChat);
-app.post("/api/structured", structuredChat);
-app.post("/api/banking-agent", bankingChat);
-app.post("/api/rag", buildRagChat(ragService));
+app.post("/api/chat", buildProxyChat(client, fallbackModel));
+app.post("/api/chat/stream", buildStreamChat(client, fallbackModel));
+app.post("/api/structured", buildStructuredChat(client, fallbackModel));
+app.post("/api/banking-agent", buildBankingChat(client, fallbackModel));
+app.post("/api/rag", buildRagChat(client, fallbackModel, ragService));
 app.post(
   "/api/upload",
   upload.single("file"),
@@ -72,14 +72,15 @@ app.get("/vendor/dompurify.js", (req, res) => {
 // Public static files
 app.use(express.static(root));
 
+// SPA fallback (must be after static, before error handlers)
+// Only serve index.html for non-API routes
+app.get(/^(?!\/api\/).*/, (req, res) => {
+  res.sendFile(join(root, "index.html"));
+});
+
 // Error handling middleware (must be after routes)
 app.use(notFoundHandler);
 app.use(errorHandler);
-
-// SPA fallback
-app.get(/.*/, (req, res) => {
-  res.sendFile(join(root, "index.html"));
-});
 
 app.listen(port, () => {
   console.log(`Local LLM Lab: http://localhost:${port}`);

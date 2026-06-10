@@ -11,11 +11,20 @@ export const analysisSchema = z.object({
 const extractJson = (text) => {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidate = fenced?.[1] || text;
-  const start = candidate.indexOf("{");
-  const end = candidate.lastIndexOf("}");
-
-  if (start === -1 || end === -1) throw new Error("No JSON object found");
-  return JSON.parse(candidate.slice(start, end + 1));
+  let depth = 0;
+  let start = -1;
+  for (let i = 0; i < candidate.length; i++) {
+    if (candidate[i] === "{") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (candidate[i] === "}") {
+      depth--;
+      if (depth === 0 && start !== -1) {
+        return JSON.parse(candidate.slice(start, i + 1));
+      }
+    }
+  }
+  throw new Error("No JSON object found");
 };
 
 export const parseAnalysis = (text) => analysisSchema.parse(extractJson(text));

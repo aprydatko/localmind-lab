@@ -1,16 +1,7 @@
-import {
-  readFileSync,
-  readdirSync,
-  statSync
-} from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { readdirSync, statSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
-import { PDFParse } from 'pdf-parse';
-
-const parsePdf = async (dataBuffer) => {
-  const parser = new PDFParse({ data: dataBuffer });
-  const result = await parser.getText();
-  return { text: result.text };
-};
+import { parsePdf } from '../utils/pdf.js';
 
 export const buildUploadController = (ragService) => async (req, res) => {
   try {
@@ -25,16 +16,15 @@ export const buildUploadController = (ragService) => async (req, res) => {
       mimetype === 'application/pdf' ||
       originalname.toLowerCase().endsWith('.pdf')
     ) {
-      const dataBuffer = readFileSync(path);
-      const pdfData = await parsePdf(dataBuffer);
-      textContent = pdfData.text;
+      const dataBuffer = await readFile(path);
+      textContent = await parsePdf(dataBuffer);
     } else if (
       mimetype === 'text/plain' ||
       mimetype === 'text/markdown' ||
       originalname.toLowerCase().endsWith('.md') ||
       originalname.toLowerCase().endsWith('.txt')
     ) {
-      textContent = readFileSync(path, 'utf-8');
+      textContent = await readFile(path, 'utf-8');
     } else {
       return res.status(400).json({
         error: 'Unsupported file type. Please upload .txt, .md, or .pdf',

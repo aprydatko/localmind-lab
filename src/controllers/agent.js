@@ -1,9 +1,9 @@
 import { runBankingAgent } from "../banking-agent.js";
 import { buildChatRequest } from "../chat-request.js";
-import { client, fallbackModel } from "../llama-client.js";
+import { sendApiError } from "../utils/api-error.js";
 import { BankingService } from "../services/banking.js";
 
-export const bankingChat = async (req, res) => {
+export const buildBankingChat = (client, fallbackModel) => async (req, res) => {
   try {
     const input = req.body;
     const chatRequest = buildChatRequest(input, fallbackModel);
@@ -25,6 +25,6 @@ export const bankingChat = async (req, res) => {
     });
     res.json(result);
   } catch (error) {
-    res.status(502).json({ error: error.message });
+    sendApiError(res, error);
   }
 };

@@ -1,4 +1,5 @@
 import FlexSearch from 'flexsearch';
+import { readFile } from 'node:fs/promises';
 import {
   existsSync,
   readFileSync,
@@ -8,7 +9,7 @@ import {
 } from 'node:fs';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PDFParse } from 'pdf-parse';
+import { parsePdf } from '../utils/pdf.js';
 
 export class RagService {
   constructor(docsDir) {
@@ -47,9 +48,9 @@ export class RagService {
           let content = '';
 
           if (ext === '.md' || ext === '.txt') {
-            content = readFileSync(filePath, 'utf-8');
+            content = await readFile(filePath, 'utf-8');
           } else if (ext === '.pdf') {
-            content = await this.parsePdf(filePath);
+            content = await parsePdf(filePath);
           }
 
           if (content) {
@@ -68,6 +69,7 @@ export class RagService {
       console.log(`[rag] Indexed ${this.chunkId} text chunks.`);
     } catch (error) {
       console.error('[rag] Failed to initialize index:', error.message);
+      throw error;
     }
   }
 
@@ -86,13 +88,6 @@ export class RagService {
     }
     unlinkSync(filePath);
     await this.rebuildIndex();
-  }
-
-  async parsePdf(filePath) {
-    const dataBuffer = readFileSync(filePath);
-    const parser = new PDFParse({ data: dataBuffer });
-    const result = await parser.getText();
-    return result.text || '';
   }
 
   extractKeywords(query) {
@@ -188,6 +183,12 @@ export class RagService {
 
   // Simple text splitter by paragraphs
   splitText(text, chunkSize = 500, overlap = 100) {
+    if (typeof chunkSize !== 'number' || chunkSize <= 0 || !Number.isFinite(chunkSize)) {
+      throw new Error('chunkSize must be a positive number');
+    }
+    if (typeof overlap !== 'number' || overlap < 0 || !Number.isFinite(overlap) || overlap >= chunkSize) {
+      throw new Error('overlap must be a non-negative number less than chunkSize');
+    }
     const paragraphs = text.split(/\n\s*\n/);
     const chunks = [];
     let currentChunk = '';

@@ -38,10 +38,20 @@ export class BankingService {
       return this.getBalance()
     }
     if (name === 'get_transactions') {
-      return this.getTransactions(args.limit)
+      const limit = args?.limit ?? 5
+      if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 10) {
+        throw new Error('limit must be an integer between 1 and 10')
+      }
+      return this.getTransactions(limit)
     }
     if (name === 'get_exchange_rate') {
-      return this.getExchangeRate(args.from, args.to)
+      const from = args?.from
+      const to = args?.to
+      const supported = ['UAH', 'USD', 'EUR']
+      if (!from || !to || !supported.includes(from) || !supported.includes(to)) {
+        throw new Error(`from and to must be one of: ${supported.join(', ')}`)
+      }
+      return this.getExchangeRate(from, to)
     }
     throw new Error(`Unknown tool: ${name}`)
   }
